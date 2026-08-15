@@ -1,0 +1,274 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String      @id @default(uuid())
+  email         String      @unique
+  passwordHash  String
+  fullName      String
+  role          String      @default("SUPER_ADMIN") // SUPER_ADMIN, CONTENT_MANAGER, PROJECT_MANAGER, FINANCE_MANAGER, COMMUNICATIONS_MANAGER, MODERATOR
+  isActive      Boolean     @default(true)
+  avatar        String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  auditLogs     AuditLog[]
+  newsArticles  News[]      @relation("NewsAuthor")
+
+  @@map("users")
+}
+
+model Program {
+  id            String      @id @default(uuid())
+  title         String
+  slug          String      @unique
+  description   String
+  content       String?
+  image         String?
+  objectives    String?     // Stored as JSON or line-separated text
+  locations     String?
+  beneficiaries String?
+  status        String      @default("Active") // Active, Paused, Upcoming
+  order         Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  projects      Project[]
+
+  @@map("programs")
+}
+
+model Project {
+  id            String         @id @default(uuid())
+  title         String
+  slug          String         @unique
+  description   String
+  content       String?
+  featuredImage String?
+  programId     String?
+  program       Program?       @relation(fields: [programId], references: [id], onDelete: SetNull)
+  location      String
+  region        String         @default("Somalia")
+  startDate     DateTime?
+  endDate       DateTime?
+  budget        Float          @default(0)
+  beneficiaries Int            @default(0)
+  progress      Int            @default(0) // 0-100%
+  status        String         @default("Active") // Planned, Active, Completed, Paused
+  objectives    String?        // Line-separated or JSON
+  results       String?
+  impact        String?
+  isFeatured    Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  images        ProjectImage[]
+
+  @@map("projects")
+}
+
+model ProjectImage {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  url       String
+  caption   String?
+  createdAt DateTime @default(now())
+
+  @@map("project_images")
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slug      String   @unique
+  articles  News[]
+
+  @@map("categories")
+}
+
+model Tag {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slug      String   @unique
+
+  @@map("tags")
+}
+
+model News {
+  id             String    @id @default(uuid())
+  title          String
+  slug           String    @unique
+  excerpt        String
+  content        String
+  featuredImage  String?
+  authorId       String?
+  author         User?     @relation("NewsAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  categoryId     String?
+  category       Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags           String?   // Comma separated tags
+  status         String    @default("Published") // Draft, Published, Archived
+  publishedAt    DateTime? @default(now())
+  seoTitle       String?
+  seoDescription String?
+  isFeatured     Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("news")
+}
+
+model Story {
+  id          String   @id @default(uuid())
+  name        String
+  location    String
+  image       String?
+  story       String
+  programName String?
+  impact      String?
+  date        DateTime @default(now())
+  isFeatured  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("stories")
+}
+
+model Testimonial {
+  id          String   @id @default(uuid())
+  quote       String
+  authorName  String
+  authorTitle String?
+  avatar      String?
+  organization String?
+  createdAt   DateTime @default(now())
+
+  @@map("testimonials")
+}
+
+model Partner {
+  id          String   @id @default(uuid())
+  name        String
+  logo        String
+  websiteUrl  String?
+  type        String   @default("Strategic") // Strategic, Donor, Implementation, Institutional
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@map("partners")
+}
+
+model Donation {
+  id              String   @id @default(uuid())
+  donorName       String
+  donorEmail      String
+  donorPhone      String?
+  country         String   @default("Somalia")
+  amount          Float
+  currency        String   @default("USD")
+  type            String   @default("one-time") // one-time, monthly
+  purpose         String   @default("General Fund")
+  status          String   @default("Paid") // Pending, Paid, Failed, Refunded
+  transactionId   String?  @unique
+  paymentMethod   String   @default("Card") // Card, PayPal, Mobile Money, Bank Transfer
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("donations")
+}
+
+model Volunteer {
+  id           String   @id @default(uuid())
+  fullName     String
+  email        String
+  phone        String
+  country      String   @default("Somalia")
+  skills       String   // Comma separated
+  experience   String?
+  availability String   @default("Part-time") // Full-time, Part-time, Weekends, Remote
+  motivation   String
+  cvUrl        String?
+  status       String   @default("Pending") // Pending, Approved, Rejected
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("volunteers")
+}
+
+model ContactMessage {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("contact_messages")
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  title       String
+  category    String   @default("Annual Report") // Annual Report, Financial Report, Policy, Publication
+  fileUrl     String
+  fileSize    String?
+  year        String?
+  description String?
+  createdAt   DateTime @default(now())
+
+  @@map("documents")
+}
+
+model Media {
+  id        String   @id @default(uuid())
+  filename  String
+  originalName String
+  mimeType  String
+  size      Int
+  url       String
+  folder    String   @default("General") // Homepage, Programs, Projects, News, Stories, Team, Partners
+  createdAt DateTime @default(now())
+
+  @@map("media")
+}
+
+model FAQ {
+  id        String   @id @default(uuid())
+  question  String
+  answer    String
+  category  String   @default("General")
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("faqs")
+}
+
+model Setting {
+  id        String   @id @default("global")
+  key       String   @unique
+  value     String   // Serialized JSON or plain text
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userName   String
+  userRole   String
+  action     String
+  resource   String
+  resourceId String?
+  details    String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@map("audit_logs")
+}
