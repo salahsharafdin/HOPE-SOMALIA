@@ -428,7 +428,7 @@ export default function AdminLogin() {
                   <input
                     type="email"
                     {...registerForgot('email')}
-                    placeholder="salahsharafdin@gmail.com"
+                    placeholder="name@hopesomalia.org"
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-teal-500"
                   />
                 </div>
