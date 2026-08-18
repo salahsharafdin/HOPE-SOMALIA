@@ -45,6 +45,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const completeLogin = (userData, tokenData) => {
+    setToken(tokenData);
+    setUser(userData);
+    localStorage.setItem('hope_somalia_token', tokenData);
+    localStorage.setItem('hope_somalia_user', JSON.stringify(userData));
+  };
+
   const logout = () => {
     setToken(null);
     setUser(null);
@@ -53,11 +60,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isAuthenticated: !!user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, isAuthenticated: !!user, loading, login, completeLogin, logout }}>
       {children}
     </AuthContext.Provider>
   );
 };
+
 
 export const useAuth = () => {
   const context = useContext(AuthContext);

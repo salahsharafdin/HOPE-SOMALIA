@@ -20,10 +20,10 @@ const authenticate = async (req, res, next) => {
     const decoded = jwt.verify(token, jwtSecret);
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, email: true, fullName: true, role: true, isActive: true, avatar: true },
+      select: { id: true, email: true, fullName: true, role: true, status: true, avatar: true },
     });
 
-    if (!user || !user.isActive) {
+    if (!user || user.status !== 'ACTIVE') {
       return res.status(401).json({ success: false, message: 'Invalid token or user account deactivated.' });
     }
 

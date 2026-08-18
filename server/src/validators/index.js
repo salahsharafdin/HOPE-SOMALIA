@@ -3,11 +3,13 @@ const { z } = require('zod');
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
+  role: z.string().min(1, 'Role selection is required'),
 });
+
 
 const programSchema = z.object({
   title: z.string().min(3, 'Title is required'),
-  description: z.string().min(10, 'Description must be at least 10 characters'),
+  description: z.string().min(3, 'Description is required'),
   content: z.string().optional(),
   image: z.string().optional(),
   objectives: z.string().optional(),
@@ -19,7 +21,7 @@ const programSchema = z.object({
 
 const projectSchema = z.object({
   title: z.string().min(3, 'Title is required'),
-  description: z.string().min(10, 'Description must be at least 10 characters'),
+  description: z.string().min(3, 'Description is required'),
   content: z.string().optional(),
   featuredImage: z.string().optional(),
   programId: z.string().nullable().optional(),
@@ -39,8 +41,8 @@ const projectSchema = z.object({
 
 const newsSchema = z.object({
   title: z.string().min(3, 'Title is required'),
-  excerpt: z.string().min(10, 'Excerpt must be at least 10 characters'),
-  content: z.string().min(20, 'Content must be at least 20 characters'),
+  excerpt: z.string().min(3, 'Excerpt is required'),
+  content: z.string().min(3, 'Content is required'),
   featuredImage: z.string().optional(),
   categoryId: z.string().nullable().optional(),
   tags: z.string().optional(),
@@ -54,7 +56,7 @@ const storySchema = z.object({
   name: z.string().min(2, 'Name is required'),
   location: z.string().min(2, 'Location is required'),
   image: z.string().optional(),
-  story: z.string().min(20, 'Story must be at least 20 characters'),
+  story: z.string().min(3, 'Story is required'),
   programName: z.string().optional(),
   impact: z.string().optional(),
   isFeatured: z.boolean().optional(),
@@ -80,7 +82,7 @@ const volunteerSchema = z.object({
   skills: z.string().min(2, 'Skills are required'),
   experience: z.string().optional(),
   availability: z.string().default('Part-time'),
-  motivation: z.string().min(10, 'Motivation statement is required'),
+  motivation: z.string().min(3, 'Motivation statement is required'),
   cvUrl: z.string().optional(),
 });
 
@@ -89,7 +91,7 @@ const messageSchema = z.object({
   email: z.string().email('Invalid email'),
   phone: z.string().optional(),
   subject: z.string().min(3, 'Subject is required'),
-  message: z.string().min(10, 'Message must be at least 10 characters'),
+  message: z.string().min(3, 'Message is required'),
 });
 
 module.exports = {

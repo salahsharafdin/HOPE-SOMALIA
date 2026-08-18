@@ -29,6 +29,7 @@ import NotFound from './pages/public/NotFound';
 
 // Admin Pages
 import AdminLogin from './pages/admin/AdminLogin';
+import AdminResetPassword from './pages/admin/AdminResetPassword';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminHomepage from './pages/admin/AdminHomepage';
 import AdminAbout from './pages/admin/AdminAbout';
@@ -91,6 +92,7 @@ export default function App() {
 
             {/* Admin Authentication */}
             <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/reset-password" element={<AdminResetPassword />} />
 
             {/* Protected Admin Routes */}
             <Route
@@ -120,6 +122,9 @@ export default function App() {
               <Route path="users" element={<AdminUsers />} />
               <Route path="audit-logs" element={<AdminAuditLogs />} />
               <Route path="settings" element={<AdminSettings />} />
+              <Route path="content" element={<Navigate to="/admin/news" replace />} />
+              <Route path="finance" element={<Navigate to="/admin/donations" replace />} />
+              <Route path="staff" element={<Navigate to="/admin/volunteers" replace />} />
             </Route>
           </Routes>
         </SettingsProvider>

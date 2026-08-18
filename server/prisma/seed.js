@@ -30,17 +30,39 @@ async function main() {
 
   // 2. Create Users
   const superAdminPassword = await bcrypt.hash('Admin123!', 10);
+  const salahPassword = await bcrypt.hash('salahsharafdin', 10);
   const staffPassword = await bcrypt.hash('Staff123!', 10);
 
   const superAdmin = await prisma.user.create({
+    data: {
+      email: 'salahsharafdin@gmail.com',
+      passwordHash: salahPassword,
+      fullName: 'Salah Sharafdin',
+      role: 'SUPER_ADMIN',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+    },
+  });
+
+  await prisma.user.create({
+    data: {
+      email: 'salasharafdin@gmail.com',
+      passwordHash: salahPassword,
+      fullName: 'Salah Sharafdin (Alias)',
+      role: 'SUPER_ADMIN',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+    },
+  });
+
+  await prisma.user.create({
     data: {
       email: 'admin@hopesomalia.org',
       passwordHash: superAdminPassword,
       fullName: 'Dr. Abdirahman Hassan',
       role: 'SUPER_ADMIN',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80',
     },
   });
+
 
   const contentManager = await prisma.user.create({
     data: {

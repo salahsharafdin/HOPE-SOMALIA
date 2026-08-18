@@ -10,14 +10,18 @@ exports.getAllUsers = async (req, res, next) => {
         email: true,
         fullName: true,
         role: true,
-        isActive: true,
+        status: true,
         avatar: true,
         createdAt: true,
         updatedAt: true,
       },
       orderBy: { createdAt: 'desc' },
     });
-    res.json({ success: true, count: users.length, data: users });
+    const mappedUsers = users.map(u => ({
+      ...u,
+      isActive: u.status === 'ACTIVE'
+    }));
+    res.json({ success: true, count: mappedUsers.length, data: mappedUsers });
   } catch (error) {
     next(error);
   }
@@ -38,7 +42,7 @@ exports.createUser = async (req, res, next) => {
         fullName,
         role,
       },
-      select: { id: true, email: true, fullName: true, role: true, isActive: true, createdAt: true },
+      select: { id: true, email: true, fullName: true, role: true, status: true, createdAt: true },
     });
 
     await createAuditLog({
@@ -50,7 +54,7 @@ exports.createUser = async (req, res, next) => {
       ipAddress: req.ip,
     });
 
-    res.status(201).json({ success: true, message: 'User created successfully', data: newUser });
+    res.status(201).json({ success: true, message: 'User created successfully', data: { ...newUser, isActive: newUser.status === 'ACTIVE' } });
   } catch (error) {
     next(error);
   }
@@ -60,14 +64,19 @@ exports.updateUserRole = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { role, isActive } = req.body;
+    
+    let status = undefined;
+    if (isActive !== undefined) {
+      status = isActive ? 'ACTIVE' : 'DISABLED';
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id },
       data: {
         ...(role ? { role } : {}),
-        ...(isActive !== undefined ? { isActive } : {}),
+        ...(status ? { status } : {}),
       },
-      select: { id: true, email: true, fullName: true, role: true, isActive: true },
+      select: { id: true, email: true, fullName: true, role: true, status: true },
     });
 
     await createAuditLog({
@@ -75,11 +84,11 @@ exports.updateUserRole = async (req, res, next) => {
       action: 'UPDATE_ADMIN_USER',
       resource: 'User',
       resourceId: updatedUser.id,
-      details: `Updated role/status for '${updatedUser.fullName}' to Role: ${updatedUser.role}, Active: ${updatedUser.isActive}`,
+      details: `Updated role/status for '${updatedUser.fullName}' to Role: ${updatedUser.role}, Status: ${updatedUser.status}`,
       ipAddress: req.ip,
     });
 
-    res.json({ success: true, message: 'User updated successfully', data: updatedUser });
+    res.json({ success: true, message: 'User updated successfully', data: { ...updatedUser, isActive: updatedUser.status === 'ACTIVE' } });
   } catch (error) {
     next(error);
   }
