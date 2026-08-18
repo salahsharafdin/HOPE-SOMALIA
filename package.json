@@ -11,5 +11,18 @@
     "client:build": "npm run build --prefix client",
     "server:start": "npm start --prefix server",
     "server:seed": "npm run seed --prefix server"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.9.1",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.11.0",
+    "nodemailer": "^9.0.5",
+    "serverless-http": "^4.0.0",
+    "zod": "^4.4.3"
   }
 }
