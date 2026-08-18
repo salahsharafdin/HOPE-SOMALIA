@@ -1,7 +1,16 @@
 [build]
-  base = "client"
-  publish = "dist"
-  command = "npm run build"
+  command = "npm run build --prefix client"
+  publish = "client/dist"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["@prisma/client"]
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
 
 [[redirects]]
   from = "/*"
