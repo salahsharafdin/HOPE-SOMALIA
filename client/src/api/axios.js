@@ -31,7 +31,23 @@ api.interceptors.response.use(
         window.location.href = '/admin/login';
       }
     }
-    const message = error.response?.data?.message || error.message || 'An error occurred';
+
+    let message = 'An error occurred';
+
+    if (error.response?.data) {
+      if (typeof error.response.data === 'object' && error.response.data.message) {
+        message = error.response.data.message;
+      } else if (typeof error.response.data === 'string' && !error.response.data.includes('<!DOCTYPE')) {
+        message = error.response.data;
+      } else if (error.response.status === 404) {
+        message = 'The requested API endpoint was not found. Please ensure the backend server is running.';
+      }
+    } else if (error.message === 'Network Error') {
+      message = 'Network error: Cannot reach the backend API server. Please check your connection or start the server.';
+    } else if (error.message) {
+      message = error.message;
+    }
+
     return Promise.reject(new Error(message));
   }
 );
