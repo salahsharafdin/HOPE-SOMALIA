@@ -1,9 +1,26 @@
 import React from 'react';
-import { Target, Eye, Shield, MapPin, Award, Users, CheckCircle2 } from 'lucide-react';
+import { Target, Eye, Shield, CheckCircle2 } from 'lucide-react';
 import SEO from '../../components/common/SEO';
 import ImageWithFallback from '../../components/common/ImageWithFallback';
+import { useSettings } from '../../context/SettingsContext';
 
 export default function About() {
+  const { settings } = useSettings();
+
+  const heroTitle = settings.about_hero_title || 'Dedicated To Restoring Dignity & Hope';
+  const heroDesc = settings.about_hero_description || 'Established in 2018, Hope Somalia Foundation is a community-anchored humanitarian organization working to solve key challenges in education, health, clean water, and climate resilience.';
+  const storyTitle = settings.about_story_title || 'Rooted In Local Communities, Serving With Integrity';
+  const storyP1 = settings.about_story || 'Hope Somalia Foundation was founded by a coalition of local humanitarian professionals, physicians, and community leaders determined to create a transparent, efficient non-governmental organization capable of acting swiftly during crises while building long-term local resilience.';
+  const storyP2 = settings.about_story_p2 || 'Registered under the Federal Ministry of Planning, Investment and Economic Development (Reg: SOM-2018-042), we collaborate with international agencies, UN bodies, and local councils to ensure every dollar directly impacts families on the ground.';
+  const storyImage = settings.about_image || 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80';
+  const mission = settings.about_mission || 'To empower vulnerable communities across Somalia by facilitating sustainable access to clean water, quality education, lifesaving maternal healthcare, climate-adapted farming, and rapid emergency aid.';
+  const vision = settings.about_vision || 'A peaceful, resilient Horn of Africa where every child has access to quality learning, mothers give birth safely, and communities thrive through self-sustaining livelihoods.';
+  const valuesRaw = settings.about_values || 'Trust & Transparency: Rigorous financial auditing., Human Dignity: Respect for local culture and community leadership., Sustainability: Building self-reliant systems over aid dependency.';
+  const efficiencyStat = settings.about_efficiency_stat || '88.4% Field Efficiency';
+  const efficiencyLabel = settings.about_efficiency_label || 'Direct allocation to ground operations';
+
+  const valuesList = valuesRaw.split(',').map((v) => v.trim()).filter(Boolean);
+
   const leadership = [
     { name: 'Dr. Abdirahman Hassan', title: 'Executive Director & Founder', image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80', bio: 'Over 18 years leading international development and public health initiatives across the Horn of Africa.' },
     { name: 'Fatima Omar', title: 'Director of Programs & Field Operations', image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80', bio: 'Specialist in emergency rapid deployment, community empowerment, and maternal health access.' },
@@ -18,9 +35,9 @@ export default function About() {
       <section className="bg-navy-950 text-white py-16 lg:py-24 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-4 text-center max-w-3xl">
           <span className="text-xs font-bold text-brand-400 uppercase tracking-widest block">About Hope Somalia</span>
-          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight">Dedicated To Restoring Dignity & Hope</h1>
+          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight">{heroTitle}</h1>
           <p className="text-slate-300 text-base sm:text-lg leading-relaxed">
-            Established in 2018, Hope Somalia Foundation is a community-anchored humanitarian organization working to solve key challenges in education, health, clean water, and climate resilience.
+            {heroDesc}
           </p>
         </div>
       </section>
@@ -31,20 +48,22 @@ export default function About() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
               <span className="text-xs font-bold text-brand-600 uppercase tracking-widest block">Our Foundation Story</span>
-              <h2 className="text-3xl font-extrabold text-navy-900 tracking-tight">Rooted In Local Communities, Serving With Integrity</h2>
-              <p className="text-slate-600 text-sm leading-relaxed">
-                Hope Somalia Foundation was founded by a coalition of local humanitarian professionals, physicians, and community leaders determined to create a transparent, efficient non-governmental organization capable of acting swiftly during crises while building long-term local resilience.
+              <h2 className="text-3xl font-extrabold text-navy-900 tracking-tight">{storyTitle}</h2>
+              <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-line">
+                {storyP1}
               </p>
-              <p className="text-slate-600 text-sm leading-relaxed">
-                Registered under the Federal Ministry of Planning, Investment and Economic Development (Reg: SOM-2018-042), we collaborate with international agencies, UN bodies, and local councils to ensure every dollar directly impacts families on the ground.
-              </p>
+              {storyP2 && (
+                <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-line">
+                  {storyP2}
+                </p>
+              )}
 
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100">
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-brand-600 shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="font-bold text-navy-900 text-sm">88.4% Field Efficiency</h4>
-                    <p className="text-xs text-slate-500">Direct allocation to ground operations</p>
+                    <h4 className="font-bold text-navy-900 text-sm">{efficiencyStat}</h4>
+                    <p className="text-xs text-slate-500">{efficiencyLabel}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -59,9 +78,9 @@ export default function About() {
 
             <div className="relative">
               <ImageWithFallback
-                src="https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80"
-                alt="Community work"
-                className="rounded-2xl shadow-xl border border-slate-200"
+                src={storyImage}
+                alt={storyTitle}
+                className="rounded-2xl shadow-xl border border-slate-200 w-full object-cover max-h-[460px]"
               />
             </div>
           </div>
@@ -77,8 +96,8 @@ export default function About() {
                 <Target className="w-6 h-6" />
               </div>
               <h3 className="text-xl font-bold text-navy-900">Our Mission</h3>
-              <p className="text-slate-600 text-sm leading-relaxed">
-                To empower vulnerable communities across Somalia by facilitating sustainable access to clean water, quality education, lifesaving maternal healthcare, climate-adapted farming, and rapid emergency aid.
+              <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-line">
+                {mission}
               </p>
             </div>
 
@@ -87,8 +106,8 @@ export default function About() {
                 <Eye className="w-6 h-6" />
               </div>
               <h3 className="text-xl font-bold text-navy-900">Our Vision</h3>
-              <p className="text-slate-600 text-sm leading-relaxed">
-                A peaceful, resilient Horn of Africa where every child has access to quality learning, mothers give birth safely, and communities thrive through self-sustaining livelihoods.
+              <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-line">
+                {vision}
               </p>
             </div>
 
@@ -98,9 +117,9 @@ export default function About() {
               </div>
               <h3 className="text-xl font-bold text-navy-900">Core Values</h3>
               <ul className="text-slate-600 text-sm space-y-2">
-                <li>• <strong>Trust & Transparency:</strong> Rigorous financial auditing.</li>
-                <li>• <strong>Human Dignity:</strong> Respect for local culture and community leadership.</li>
-                <li>• <strong>Sustainability:</strong> Building self-reliant systems over aid dependency.</li>
+                {valuesList.map((val, idx) => (
+                  <li key={idx}>• {val}</li>
+                ))}
               </ul>
             </div>
           </div>

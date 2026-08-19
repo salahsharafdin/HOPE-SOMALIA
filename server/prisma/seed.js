@@ -435,16 +435,7 @@ async function main() {
   console.log('📄 Created FAQs and official documents.');
 
   // 9. Initial Donations, Volunteers, and Contact Messages
-  const donations = [
-    { donorName: 'Global Giving Partner', donorEmail: 'donor@globalgiving.org', donorPhone: '+1-555-019-2834', amount: 5000, currency: 'USD', type: 'one-time', purpose: 'Clean Water Fund', status: 'Paid', transactionId: 'TXN-99482103', paymentMethod: 'Bank Transfer' },
-    { donorName: 'Mohamud Ali', donorEmail: 'm.ali@example.com', donorPhone: '+252-615-554433', amount: 100, currency: 'USD', type: 'monthly', purpose: 'Education & Child Support', status: 'Paid', transactionId: 'TXN-88421092', paymentMethod: 'Card' },
-    { donorName: 'Safia Warsame', donorEmail: 'safia.w@example.com', amount: 250, currency: 'USD', type: 'one-time', purpose: 'Healthcare & Maternal Survival', status: 'Paid', transactionId: 'TXN-77310941', paymentMethod: 'PayPal' },
-    { donorName: 'Anonymous Supporter', donorEmail: 'anonymous@donor.org', amount: 50, currency: 'USD', type: 'monthly', purpose: 'General Emergency Fund', status: 'Paid', transactionId: 'TXN-66209830', paymentMethod: 'Card' },
-  ];
-
-  for (const d of donations) {
-    await prisma.donation.create({ data: d });
-  }
+  // Donations start empty - populated dynamically by real donors
 
   await prisma.volunteer.create({
     data: {
