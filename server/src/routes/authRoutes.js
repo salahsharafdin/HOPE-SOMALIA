@@ -11,5 +11,6 @@ router.post('/reset-password', authController.resetPasswordWithToken);
 router.post('/change-password', authenticate, authController.changePassword);
 router.get('/me', authenticate, authController.getMe);
 router.post('/logout', authenticate, authController.logout);
+router.get('/test-smtp', authController.testSmtp);
 
 module.exports = router;

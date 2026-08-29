@@ -155,7 +155,11 @@ export default function AdminLogin() {
         setUserEmail(data.email);
         setStep('otp');
         setCooldown(45);
-        addToast('Verification code sent to your email', 'success');
+        if (res.emailSent === false) {
+          addToast(res.message || 'OTP Code generated (Check terminal in dev mode)', 'info');
+        } else {
+          addToast('Verification code sent to your email', 'success');
+        }
       }
     } catch (err) {
       addToast(err.message || 'Incorrect email or password.', 'error');
@@ -199,7 +203,11 @@ export default function AdminLogin() {
       const res = await api.post('/auth/resend-otp', { userId });
       if (res.success) {
         setCooldown(45);
-        addToast('A new verification code has been sent', 'success');
+        if (res.emailSent === false) {
+          addToast(res.message || 'New OTP generated (Check terminal in dev mode)', 'info');
+        } else {
+          addToast('A new verification code has been sent', 'success');
+        }
       }
     } catch (err) {
       addToast(err.message || 'Failed to resend code', 'error');
