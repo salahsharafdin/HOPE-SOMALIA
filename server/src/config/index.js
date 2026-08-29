@@ -1,6 +1,10 @@
 const { PrismaClient } = require('@prisma/client');
+const path = require('path');
 const dotenv = require('dotenv');
 
+// Load environment variables across server/.env, root .env, or current directory
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 dotenv.config();
 
 const prisma = new PrismaClient();

@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const { z } = require('zod');
 const { prisma, jwtSecret } = require('../config');
 const { createAuditLog } = require('../utils/auditLogger');
-const { sendEmail } = require('../utils/email');
+const { sendEmail, testSmtpConnection } = require('../utils/email');
 
 // Registered Administrator Accounts (Fallback store for serverless resilience)
 const REGISTERED_ADMINS = [
@@ -174,14 +174,14 @@ exports.login = async (req, res, next) => {
     // Attempt to send transactional email
     let emailSent = false;
     try {
-      emailSent = await sendEmail({
+      const emailResult = await sendEmail({
         to: user.email,
         subject: 'NGO Admin Login Verification Code',
         text: `Your NGO Admin verification code is ${otp}.\nThis code will expire in 5 minutes.\nIf you did not attempt to log in, please secure your account immediately.`,
       });
+      emailSent = emailResult && emailResult.success === true;
     } catch (err) {
       console.error('Email sending error:', err.message || err);
-      // In production, notify of email delivery failure
       if (process.env.NODE_ENV === 'production') {
         return res.status(500).json({ 
           success: false, 
@@ -194,7 +194,7 @@ exports.login = async (req, res, next) => {
       success: true,
       otpRequired: true,
       userId: user.id,
-      emailSent: !!emailSent,
+      emailSent,
       message: emailSent 
         ? 'Verification code sent to your email.' 
         : 'Verification code generated. (Check terminal/console for code in dev mode)',
@@ -325,11 +325,12 @@ exports.resendOtp = async (req, res, next) => {
     // Send email
     let emailSent = false;
     try {
-      emailSent = await sendEmail({
+      const emailResult = await sendEmail({
         to: user.email,
         subject: 'NGO Admin Login Verification Code',
         text: `Your NGO Admin verification code is ${otp}.\nThis code will expire in 5 minutes.\nIf you did not attempt to log in, please secure your account immediately.`,
       });
+      emailSent = emailResult && emailResult.success === true;
     } catch (err) {
       console.error('Resend OTP Email error:', err.message || err);
       if (process.env.NODE_ENV === 'production') {
@@ -342,8 +343,10 @@ exports.resendOtp = async (req, res, next) => {
 
     res.json({
       success: true,
-      emailSent: !!emailSent,
-      message: 'A new verification code has been generated.',
+      emailSent,
+      message: emailSent 
+        ? 'A new verification code has been sent to your email.' 
+        : 'A new verification code has been generated (check terminal).',
     });
   } catch (error) {
     next(error);
@@ -420,12 +423,13 @@ exports.forgotPassword = async (req, res, next) => {
 
     let emailSent = false;
     try {
-      emailSent = await sendEmail({
+      const emailResult = await sendEmail({
         to: user.email,
         subject: emailSubject,
         text: emailText,
         html: emailHtml,
       });
+      emailSent = emailResult && emailResult.success === true;
     } catch (err) {
       console.error('Forgot password email error:', err.message || err);
       if (process.env.NODE_ENV === 'production') {
@@ -438,8 +442,10 @@ exports.forgotPassword = async (req, res, next) => {
 
     res.json({
       success: true,
-      emailSent: !!emailSent,
-      message: 'Password reset link has been processed. (Check your inbox or console)',
+      emailSent,
+      message: emailSent 
+        ? 'Password reset link has been sent to your Gmail inbox.' 
+        : 'Password reset link has been generated (check terminal).',
     });
   } catch (error) {
     next(error);
@@ -593,3 +599,16 @@ exports.logout = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Direct diagnostic endpoint to check SMTP connectivity and credentials
+ */
+exports.testSmtp = async (req, res, next) => {
+  try {
+    const result = await testSmtpConnection();
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
