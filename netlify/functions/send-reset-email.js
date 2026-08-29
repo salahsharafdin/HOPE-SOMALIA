@@ -148,18 +148,34 @@ exports.handler = async (event, context) => {
       </div>
     `;
 
-    await sendEmail({
-      to: user.email,
-      subject: emailSubject,
-      text: emailText,
-      html: emailHtml,
-    });
+    let emailSent = false;
+    try {
+      emailSent = await sendEmail({
+        to: user.email,
+        subject: emailSubject,
+        text: emailText,
+        html: emailHtml,
+      });
+    } catch (emailErr) {
+      console.error('Email error in netlify function:', emailErr.message || emailErr);
+      if (process.env.NODE_ENV === 'production') {
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            message: 'Could not send reset link. Please check your email configuration.',
+          }),
+        };
+      }
+    }
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         success: true,
+        emailSent: !!emailSent,
         message: 'Password reset link has been sent to your Gmail inbox.',
       }),
     };

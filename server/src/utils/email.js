@@ -12,11 +12,12 @@ async function sendEmail({ to, subject, text, html }) {
   const from = process.env.SMTP_FROM || `"Hope Somalia Admin" <${user || 'no-reply@hopesomalia.org'}>`;
 
   if (!host || !user || !pass) {
-    console.log('\n--- ✉️ DEVELOPMENT EMAIL MOCK ---');
-    console.log(`To:      ${to}`);
-    console.log(`Subject: ${subject}`);
-    console.log(`Message: ${text || html}`);
-    console.log('--------------------------------\n');
+    console.log('\n======================================================');
+    console.log('✉️  DEVELOPMENT EMAIL MOCK (No SMTP credentials configured)');
+    console.log(`📧 To:      ${to}`);
+    console.log(`📌 Subject: ${subject}`);
+    console.log(`📝 Message:\n${text || html}`);
+    console.log('======================================================\n');
     return true;
   }
 
@@ -43,10 +44,21 @@ async function sendEmail({ to, subject, text, html }) {
       text,
       html: html || undefined,
     });
-    console.log(`✅ Transactional email successfully sent to ${to}`);
+    console.log(`✅ Transactional email successfully sent via SMTP to ${to}`);
     return true;
   } catch (error) {
-    console.error('Failed to send email via SMTP:', error);
+    console.error(`\n❌ [SMTP Error] Could not send email to ${to}:`, error.message || error);
+    console.log('======================================================');
+    console.log('✉️  [LOCAL DEV FALLBACK] Message details:');
+    console.log(`📧 To:      ${to}`);
+    console.log(`📌 Subject: ${subject}`);
+    console.log(`📝 Message:\n${text || html}`);
+    console.log('======================================================\n');
+    
+    // In development mode, allow proceeding so developers aren't locked out
+    if (process.env.NODE_ENV !== 'production') {
+      return false;
+    }
     throw new Error('Email delivery failure');
   }
 }
