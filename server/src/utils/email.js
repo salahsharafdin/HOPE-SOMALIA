@@ -5,10 +5,11 @@ const nodemailer = require('nodemailer');
  * Supports both plain text and rich HTML emails
  */
 async function sendEmail({ to, subject, text, html }) {
-  const host = process.env.SMTP_HOST;
+  const host = (process.env.SMTP_HOST || '').trim();
   const port = process.env.SMTP_PORT || 465;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
+  const user = (process.env.SMTP_USER || '').trim();
+  const rawPass = process.env.SMTP_PASS || process.env.SMTP_PASSWORD || '';
+  const pass = rawPass.replace(/\s+/g, '');
   const from = process.env.SMTP_FROM || `"Hope Somalia Admin" <${user || 'no-reply@hopesomalia.org'}>`;
 
   if (!host || !user || !pass) {
