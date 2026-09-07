@@ -7,10 +7,11 @@
     "dev:all": "node dev.js",
     "dev:client": "npm run dev --prefix client",
     "dev:server": "npm run dev --prefix server",
-    "build": "npm run build --prefix client",
+    "build": "npm install --prefix client && npm run build --prefix client",
     "client:build": "npm run build --prefix client",
     "server:start": "npm start --prefix server",
-    "server:seed": "npm run seed --prefix server"
+    "server:seed": "npm run seed --prefix server",
+    "postinstall": "npm install --prefix client"
   },
   "dependencies": {
     "@prisma/client": "^7.9.1",
