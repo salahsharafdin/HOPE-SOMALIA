@@ -1,0 +1,13 @@
+{
+  "typescript.validate.enable": false,
+  "javascript.validate.enable": false,
+  "typescript.tsserver.experimental.enableProjectDiagnostics": false,
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/client/dist/**": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/client/dist": true
+  }
+}
