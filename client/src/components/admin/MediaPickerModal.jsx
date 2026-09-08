@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Image, Upload, Search, X, Check, Copy } from 'lucide-react';
 import api from '../../api/axios';
 import { useToast } from '../../context/ToastContext';
+import { getImageUrl } from '../../utils/imageUrl';
 
 export default function MediaPickerModal({ isOpen, onClose, onSelect }) {
   const [mediaList, setMediaList] = useState([]);
@@ -128,7 +129,7 @@ export default function MediaPickerModal({ isOpen, onClose, onSelect }) {
                   className="group relative rounded-xl border border-slate-800 bg-slate-950 overflow-hidden cursor-pointer hover:border-teal-500 transition-all shadow-sm"
                 >
                   <img
-                    src={item.url}
+                    src={getImageUrl(item.url)}
                     alt={item.originalName}
                     className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
                   />
