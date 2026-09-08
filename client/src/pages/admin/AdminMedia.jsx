@@ -4,6 +4,7 @@ import api from '../../api/axios';
 import SEO from '../../components/common/SEO';
 import { useToast } from '../../context/ToastContext';
 import ConfirmModal from '../../components/common/ConfirmModal';
+import { getImageUrl } from '../../utils/imageUrl';
 
 export default function AdminMedia() {
   const [mediaList, setMediaList] = useState([]);
@@ -131,10 +132,10 @@ export default function AdminMedia() {
           {mediaList.map((item) => (
             <div key={item.id} className="group relative bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden shadow-md space-y-2">
               <div className="h-36 relative overflow-hidden bg-slate-900">
-                <img src={item.url} alt={item.originalName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                <img src={getImageUrl(item.url)} alt={item.originalName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
                   <button
-                    onClick={() => handleCopyUrl(item.url, item.id)}
+                    onClick={() => handleCopyUrl(getImageUrl(item.url), item.id)}
                     className="p-2 rounded-lg bg-teal-600 text-white hover:bg-teal-500"
                     title="Copy URL"
                   >

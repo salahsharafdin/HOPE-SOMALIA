@@ -10,7 +10,11 @@
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:migrate": "prisma migrate deploy",
-    "seed": "node prisma/seed.js"
+    "seed": "node prisma/seed.js",
+    "db:push": "prisma db push",
+    "db:seed": "node prisma/seed.js",
+    "db:use-postgres": "node -e \"const fs=require('fs'); let s=fs.readFileSync('prisma/schema.prisma','utf8').replace('provider = \\\"sqlite\\\"','provider = \\\"postgresql\\\"'); fs.writeFileSync('prisma/schema.prisma',s);\" && prisma generate",
+    "db:use-sqlite": "node -e \"const fs=require('fs'); let s=fs.readFileSync('prisma/schema.prisma','utf8').replace('provider = \\\"postgresql\\\"','provider = \\\"sqlite\\\"'); fs.writeFileSync('prisma/schema.prisma',s);\" && prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^5.19.0",

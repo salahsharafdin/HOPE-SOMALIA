@@ -1,7 +1,19 @@
 import axios from 'axios';
 
+// Robust base URL resolver: Handles trailing slashes and ensures /api path is present for remote hosts
+const getBaseUrl = () => {
+  let url = (import.meta.env.VITE_API_URL || '/api').trim();
+  if (url.endsWith('/')) {
+    url = url.slice(0, -1);
+  }
+  if (/^https?:\/\//i.test(url) && !url.endsWith('/api')) {
+    url = `${url}/api`;
+  }
+  return url;
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: getBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },
