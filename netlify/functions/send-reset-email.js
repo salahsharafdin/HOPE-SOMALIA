@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const { sendEmail } = require('../../server/src/utils/email');
+const { getClientBaseUrl } = require('../../server/src/utils/urlHelper');
 
 // Registered Administrator Emails for fallback verification
 const REGISTERED_ADMINS = [
@@ -109,9 +110,7 @@ exports.handler = async (event, context) => {
     } catch (_) {}
 
     // Determine domain for reset link
-    const host = event.headers.host || event.headers['x-forwarded-host'];
-    const protocol = event.headers['x-forwarded-proto'] || 'https';
-    const siteUrl = process.env.CLIENT_URL || process.env.URL || (host ? `${protocol}://${host}` : 'http://localhost:5173');
+    const siteUrl = getClientBaseUrl(event);
     const resetLink = `${siteUrl}/admin/reset-password?token=${rawToken}&email=${encodeURIComponent(user.email)}`;
 
     const emailSubject = 'Hope Somalia Admin - Password Reset Link';

@@ -5,6 +5,7 @@ const { z } = require('zod');
 const { prisma, jwtSecret } = require('../config');
 const { createAuditLog } = require('../utils/auditLogger');
 const { sendEmail, testSmtpConnection } = require('../utils/email');
+const { getClientBaseUrl } = require('../utils/urlHelper');
 
 // Registered Administrator Accounts (Fallback store for serverless resilience)
 const REGISTERED_ADMINS = [
@@ -376,8 +377,7 @@ exports.forgotPassword = async (req, res, next) => {
 
     await saveChallenge(user.id, tokenHash, expiresAt);
 
-    const origin = req.get ? (req.get('origin') || `${req.protocol}://${req.get('host')}`) : null;
-    const clientUrl = process.env.CLIENT_URL || process.env.URL || origin || 'http://localhost:5173';
+    const clientUrl = getClientBaseUrl(req);
     const resetLink = `${clientUrl}/admin/reset-password?token=${rawToken}&email=${encodeURIComponent(user.email)}`;
 
     console.log('\n======================================================');

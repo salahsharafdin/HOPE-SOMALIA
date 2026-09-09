@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const { sendEmail } = require('../../server/src/utils/email');
+const { getClientBaseUrl } = require('../../server/src/utils/urlHelper');
 
 const REGISTERED_ADMINS = [
   { email: 'salahsharafdin@gmail.com', fullName: 'Salah Sharafdin', role: 'SUPER_ADMIN' },
@@ -76,9 +77,7 @@ module.exports = async (req, res) => {
     } catch (_) {}
 
     // Generate reset link
-    const host = req.headers['x-forwarded-host'] || req.headers.host;
-    const proto = req.headers['x-forwarded-proto'] || 'https';
-    const siteUrl = process.env.CLIENT_URL || process.env.URL || (host ? `${proto}://${host}` : 'http://localhost:5173');
+    const siteUrl = getClientBaseUrl(req);
     const resetLink = `${siteUrl}/admin/reset-password?token=${rawToken}&email=${encodeURIComponent(user.email)}`;
 
     const emailSubject = 'Hope Somalia Admin - Password Reset Link';
