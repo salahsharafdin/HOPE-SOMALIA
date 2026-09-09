@@ -18,6 +18,8 @@ services:
         generateValue: true
       - key: CLIENT_URL
         sync: false
+      - key: PRODUCTION_CLIENT_URL
+        value: https://hope-somalia.vercel.app
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT

@@ -44,6 +44,8 @@ const allowedOrigins = [
   'http://localhost:4173',
   'http://127.0.0.1:4173',
   ...configuredClientUrls,
+  process.env.PRODUCTION_CLIENT_URL,
+  'https://hope-somalia.vercel.app',
   process.env.URL,
   process.env.DEPLOY_URL,
 ].filter(Boolean);
