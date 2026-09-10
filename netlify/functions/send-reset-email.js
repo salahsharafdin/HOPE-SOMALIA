@@ -88,14 +88,27 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Generate secure single-use reset token
-    const rawToken = crypto.randomBytes(32).toString('hex');
+    // Generate secure single-use reset token with HMAC signature
+    let jwtSecret = process.env.JWT_SECRET || 'fallback_secret_key_hope_somalia_2026';
+    try {
+      const config = require('../../server/src/config');
+      if (config && config.jwtSecret) jwtSecret = config.jwtSecret;
+    } catch (_) {}
+
+    const randomPart = crypto.randomBytes(24).toString('hex');
+    const expiresAtMs = Date.now() + 15 * 60 * 1000;
+    const signature = crypto
+      .createHmac('sha256', jwtSecret)
+      .update(`${normalizedEmail}:${expiresAtMs}:${randomPart}`)
+      .digest('hex');
+    const rawToken = `${randomPart}.${expiresAtMs}.${signature}`;
     const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    const expiresAt = new Date(expiresAtMs);
 
     // Save in challenge store
     global._otpChallenges.set(normalizedEmail, {
       tokenHash,
+      otpHash: tokenHash,
       expiresAt,
     });
 

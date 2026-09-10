@@ -2,12 +2,20 @@ const crypto = require('crypto');
 const { sendEmail } = require('../../server/src/utils/email');
 const { getClientBaseUrl } = require('../../server/src/utils/urlHelper');
 
+let jwtSecret = process.env.JWT_SECRET || 'fallback_secret_key_hope_somalia_2026';
+try {
+  const config = require('../../server/src/config');
+  if (config && config.jwtSecret) {
+    jwtSecret = config.jwtSecret;
+  }
+} catch (_) {}
+
 const REGISTERED_ADMINS = [
-  { email: 'salahsharafdin@gmail.com', fullName: 'Salah Sharafdin', role: 'SUPER_ADMIN' },
-  { email: 'salasharafdin@gmail.com', fullName: 'Salah Sharafdin', role: 'SUPER_ADMIN' },
-  { email: 'admin@hopesomalia.org', fullName: 'Dr. Abdirahman Hassan', role: 'SUPER_ADMIN' },
-  { email: 'editor@hopesomalia.org', fullName: 'Fatima Omar', role: 'CONTENT_MANAGER' },
-  { email: 'finance@hopesomalia.org', fullName: 'Mohamed Jama', role: 'FINANCE_MANAGER' },
+  { id: 'admin-salah-1', email: 'salahsharafdin@gmail.com', fullName: 'Salah Sharafdin', role: 'SUPER_ADMIN' },
+  { id: 'admin-salah-2', email: 'salasharafdin@gmail.com', fullName: 'Salah Sharafdin', role: 'SUPER_ADMIN' },
+  { id: 'admin-1', email: 'admin@hopesomalia.org', fullName: 'Dr. Abdirahman Hassan', role: 'SUPER_ADMIN' },
+  { id: 'admin-2', email: 'editor@hopesomalia.org', fullName: 'Fatima Omar', role: 'CONTENT_MANAGER' },
+  { id: 'admin-3', email: 'finance@hopesomalia.org', fullName: 'Mohamed Jama', role: 'FINANCE_MANAGER' },
 ];
 
 global._serverlessChallenges = global._serverlessChallenges || new Map();
@@ -61,16 +69,25 @@ module.exports = async (req, res) => {
       });
     }
 
-    // Generate secure reset token
-    const rawToken = crypto.randomBytes(32).toString('hex');
+    // Generate secure self-verifying reset token with HMAC signature
+    const randomPart = crypto.randomBytes(24).toString('hex');
+    const expiresAtMs = Date.now() + 15 * 60 * 1000; // 15 minutes
+    const signature = crypto
+      .createHmac('sha256', jwtSecret)
+      .update(`${normalizedEmail}:${expiresAtMs}:${randomPart}`)
+      .digest('hex');
+    const rawToken = `${randomPart}.${expiresAtMs}.${signature}`;
     const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    const expiresAt = new Date(expiresAtMs);
 
-    global._serverlessChallenges.set(normalizedEmail, { tokenHash, expiresAt });
+    global._serverlessChallenges.set(normalizedEmail, { tokenHash, otpHash: tokenHash, expiresAt });
+    if (user.id) {
+      global._serverlessChallenges.set(user.id, { tokenHash, otpHash: tokenHash, expiresAt });
+    }
 
     try {
       const { prisma } = require('../../server/src/config');
-      if (process.env.DATABASE_URL && user.id) {
+      if (prisma && prisma.otpChallenge && process.env.DATABASE_URL && user.id) {
         await prisma.otpChallenge.deleteMany({ where: { userId: user.id } });
         await prisma.otpChallenge.create({ data: { userId: user.id, otpHash: tokenHash, expiresAt } });
       }
