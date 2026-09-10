@@ -1,14 +1,21 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const { jwtSecret } = require('../../server/src/config');
+
+let jwtSecret = process.env.JWT_SECRET || 'fallback_secret_key_hope_somalia_2026';
+try {
+  const config = require('../../server/src/config');
+  if (config && config.jwtSecret) {
+    jwtSecret = config.jwtSecret;
+  }
+} catch (_) {}
 
 const REGISTERED_ADMINS = [
-  { email: 'salahsharafdin@gmail.com', fullName: 'Salah Sharafdin', role: 'SUPER_ADMIN', status: 'ACTIVE' },
-  { email: 'salasharafdin@gmail.com', fullName: 'Salah Sharafdin', role: 'SUPER_ADMIN', status: 'ACTIVE' },
-  { email: 'admin@hopesomalia.org', fullName: 'Dr. Abdirahman Hassan', role: 'SUPER_ADMIN', status: 'ACTIVE' },
-  { email: 'editor@hopesomalia.org', fullName: 'Fatima Omar', role: 'CONTENT_MANAGER', status: 'ACTIVE' },
-  { email: 'finance@hopesomalia.org', fullName: 'Mohamed Jama', role: 'FINANCE_MANAGER', status: 'ACTIVE' },
+  { id: 'admin-salah-1', email: 'salahsharafdin@gmail.com', fullName: 'Salah Sharafdin', role: 'SUPER_ADMIN', status: 'ACTIVE' },
+  { id: 'admin-salah-2', email: 'salasharafdin@gmail.com', fullName: 'Salah Sharafdin', role: 'SUPER_ADMIN', status: 'ACTIVE' },
+  { id: 'admin-1', email: 'admin@hopesomalia.org', fullName: 'Dr. Abdirahman Hassan', role: 'SUPER_ADMIN', status: 'ACTIVE' },
+  { id: 'admin-2', email: 'editor@hopesomalia.org', fullName: 'Fatima Omar', role: 'CONTENT_MANAGER', status: 'ACTIVE' },
+  { id: 'admin-3', email: 'finance@hopesomalia.org', fullName: 'Mohamed Jama', role: 'FINANCE_MANAGER', status: 'ACTIVE' },
 ];
 
 global._serverlessChallenges = global._serverlessChallenges || new Map();
@@ -48,7 +55,7 @@ module.exports = async (req, res) => {
     let user = null;
     try {
       const { prisma } = require('../../server/src/config');
-      if (process.env.DATABASE_URL) {
+      if (prisma && prisma.user && process.env.DATABASE_URL) {
         user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
       }
     } catch (_) {}
@@ -61,38 +68,67 @@ module.exports = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Account not found or disabled.' });
     }
 
-    // Check challenge
-    let challenge = global._serverlessChallenges.get(normalizedEmail);
+    // Verify token
+    let isValidToken = false;
+
+    // A. Check self-verifying HMAC token format (survives any serverless restart)
+    if (token && token.includes('.')) {
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        const [randomPart, expiresAtMs, sig] = parts;
+        if (Number(expiresAtMs) > Date.now()) {
+          const expectedSig = crypto
+            .createHmac('sha256', jwtSecret)
+            .update(`${normalizedEmail}:${expiresAtMs}:${randomPart}`)
+            .digest('hex');
+          if (sig === expectedSig) {
+            isValidToken = true;
+          }
+        }
+      }
+    }
+
+    // B. Check in-memory or database challenge
+    let challenge = global._serverlessChallenges.get(normalizedEmail) || (user.id ? global._serverlessChallenges.get(user.id) : null);
     if (!challenge && user.id) {
       try {
         const { prisma } = require('../../server/src/config');
-        challenge = await prisma.otpChallenge.findUnique({ where: { userId: user.id } });
+        if (prisma && prisma.otpChallenge) {
+          challenge = await prisma.otpChallenge.findUnique({ where: { userId: user.id } });
+        }
       } catch (_) {}
     }
 
-    if (!challenge) {
+    if (!isValidToken && challenge) {
+      if (new Date() <= new Date(challenge.expiresAt)) {
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+        if (challenge.tokenHash === tokenHash || challenge.otpHash === tokenHash) {
+          isValidToken = true;
+        }
+      }
+    }
+
+    if (!isValidToken) {
       return res.status(400).json({ success: false, message: 'Invalid or expired password reset link.' });
-    }
-
-    if (new Date() > new Date(challenge.expiresAt)) {
-      return res.status(400).json({ success: false, message: 'Reset link has expired. Please request a new one.' });
-    }
-
-    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-    if (challenge.tokenHash !== tokenHash && challenge.otpHash !== tokenHash) {
-      return res.status(400).json({ success: false, message: 'Invalid reset token.' });
     }
 
     // Invalidate challenge
     global._serverlessChallenges.delete(normalizedEmail);
+    if (user.id) {
+      global._serverlessChallenges.delete(user.id);
+    }
+
     try {
+      const passwordHash = await bcrypt.hash(newPassword, 10);
+      user.passwordHash = passwordHash;
       const { prisma } = require('../../server/src/config');
-      if (process.env.DATABASE_URL && user.id) {
-        const passwordHash = await bcrypt.hash(newPassword, 10);
+      if (prisma && prisma.user && user.id && process.env.DATABASE_URL) {
         await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
-        await prisma.otpChallenge.delete({ where: { userId: user.id } });
+        await prisma.otpChallenge.deleteMany({ where: { userId: user.id } });
       }
-    } catch (_) {}
+    } catch (err) {
+      console.warn('Password persistence warning:', err.message);
+    }
 
     const authToken = jwt.sign(
       { userId: user.id || 'admin-user', email: user.email, role: user.role },
@@ -113,7 +149,8 @@ module.exports = async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(500).json({
+    console.error('Password reset handler error:', error);
+    return res.status(400).json({
       success: false,
       message: error.message || 'An error occurred while updating your password.',
     });

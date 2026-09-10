@@ -49,6 +49,8 @@ api.interceptors.response.use(
     if (error.response?.data) {
       if (typeof error.response.data === 'object' && error.response.data.message) {
         message = error.response.data.message;
+      } else if (typeof error.response.data === 'object' && error.response.data.error) {
+        message = error.response.data.error;
       } else if (typeof error.response.data === 'string' && !error.response.data.includes('<!DOCTYPE')) {
         message = error.response.data;
       } else if (error.response.status === 404) {
@@ -56,7 +58,7 @@ api.interceptors.response.use(
       } else if (error.response.status === 405) {
         message = 'Method Not Allowed (405): Please redeploy with the updated API configuration.';
       } else if (error.response.status === 500) {
-        message = 'Server Error (500): Please check your Gmail SMTP environment variables in your deployment dashboard.';
+        message = 'Server Error (500): An error occurred on the server. Please try again or check server logs.';
       }
     } else if (error.message === 'Network Error') {
       message = 'Network error: Cannot reach the backend API server. Please check your connection or start the server.';

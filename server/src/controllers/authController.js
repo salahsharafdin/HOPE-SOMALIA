@@ -79,8 +79,12 @@ async function findUserById(id) {
 }
 
 // Helper: Save OTP / Reset Challenge
-async function saveChallenge(userId, otpHash, expiresAt) {
-  global._serverlessChallenges.set(userId, { otpHash, expiresAt, attempts: 0, createdAt: new Date() });
+async function saveChallenge(userId, otpHash, expiresAt, email = null) {
+  const data = { otpHash, tokenHash: otpHash, expiresAt, attempts: 0, createdAt: new Date() };
+  global._serverlessChallenges.set(userId, data);
+  if (email) {
+    global._serverlessChallenges.set(email.toLowerCase().trim(), data);
+  }
   try {
     if (prisma && prisma.otpChallenge) {
       await prisma.otpChallenge.deleteMany({ where: { userId } });
@@ -90,19 +94,26 @@ async function saveChallenge(userId, otpHash, expiresAt) {
 }
 
 // Helper: Get Challenge
-async function getChallenge(userId) {
+async function getChallenge(userId, email = null) {
   try {
     if (prisma && prisma.otpChallenge) {
       const challenge = await prisma.otpChallenge.findUnique({ where: { userId } });
       if (challenge) return challenge;
     }
   } catch (_) {}
+  if (email) {
+    const byEmail = global._serverlessChallenges.get(email.toLowerCase().trim());
+    if (byEmail) return byEmail;
+  }
   return global._serverlessChallenges.get(userId) || null;
 }
 
 // Helper: Delete Challenge
-async function deleteChallenge(userId) {
+async function deleteChallenge(userId, email = null) {
   global._serverlessChallenges.delete(userId);
+  if (email) {
+    global._serverlessChallenges.delete(email.toLowerCase().trim());
+  }
   try {
     if (prisma && prisma.otpChallenge) {
       await prisma.otpChallenge.deleteMany({ where: { userId } });
@@ -370,12 +381,18 @@ exports.forgotPassword = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'No registered administrator account found with this email address.' });
     }
 
-    // Generate secure reset token
-    const rawToken = crypto.randomBytes(32).toString('hex');
+    // Generate secure self-verifying reset token with HMAC signature
+    const randomPart = crypto.randomBytes(24).toString('hex');
+    const expiresAtMs = Date.now() + 15 * 60 * 1000; // 15 minutes validity
+    const signature = crypto
+      .createHmac('sha256', jwtSecret)
+      .update(`${user.email.toLowerCase().trim()}:${expiresAtMs}:${randomPart}`)
+      .digest('hex');
+    const rawToken = `${randomPart}.${expiresAtMs}.${signature}`;
     const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes validity
+    const expiresAt = new Date(expiresAtMs);
 
-    await saveChallenge(user.id, tokenHash, expiresAt);
+    await saveChallenge(user.id, tokenHash, expiresAt, user.email);
 
     const clientUrl = getClientBaseUrl(req);
     const resetLink = `${clientUrl}/admin/reset-password?token=${rawToken}&email=${encodeURIComponent(user.email)}`;
@@ -473,19 +490,40 @@ exports.resetPasswordWithToken = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Account not found or disabled.' });
     }
 
-    const challenge = await getChallenge(user.id);
+    const normalizedEmail = email.toLowerCase().trim();
+    const challenge = await getChallenge(user.id, normalizedEmail);
 
-    if (!challenge) {
+    let isValidToken = false;
+
+    // A. Check self-verifying HMAC token format (survives any serverless restart)
+    if (token && token.includes('.')) {
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        const [randomPart, expiresAtMs, sig] = parts;
+        if (Number(expiresAtMs) > Date.now()) {
+          const expectedSig = crypto
+            .createHmac('sha256', jwtSecret)
+            .update(`${normalizedEmail}:${expiresAtMs}:${randomPart}`)
+            .digest('hex');
+          if (sig === expectedSig) {
+            isValidToken = true;
+          }
+        }
+      }
+    }
+
+    // B. Check challenge hash match (from database or in-memory)
+    if (!isValidToken && challenge) {
+      if (new Date() <= new Date(challenge.expiresAt)) {
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+        if (challenge.otpHash === tokenHash || challenge.tokenHash === tokenHash) {
+          isValidToken = true;
+        }
+      }
+    }
+
+    if (!isValidToken) {
       return res.status(400).json({ success: false, message: 'Invalid or expired password reset link.' });
-    }
-
-    if (new Date() > new Date(challenge.expiresAt)) {
-      return res.status(400).json({ success: false, message: 'Reset link has expired. Please request a new one.' });
-    }
-
-    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-    if (challenge.otpHash !== tokenHash) {
-      return res.status(400).json({ success: false, message: 'Invalid reset token.' });
     }
 
     // Update password in database
@@ -493,7 +531,7 @@ exports.resetPasswordWithToken = async (req, res, next) => {
     await updatePassword(user, passwordHash);
 
     // Delete used challenge
-    await deleteChallenge(user.id);
+    await deleteChallenge(user.id, normalizedEmail);
 
     // Audit log
     try {
