@@ -47,21 +47,36 @@ api.interceptors.response.use(
     let message = error.message || 'An error occurred';
 
     if (error.response?.data) {
-      if (typeof error.response.data === 'object' && error.response.data.message) {
-        message = error.response.data.message;
-      } else if (typeof error.response.data === 'object' && error.response.data.error) {
-        message = error.response.data.error;
-      } else if (typeof error.response.data === 'string' && !error.response.data.includes('<!DOCTYPE')) {
-        message = error.response.data;
-      } else if (error.response.status === 404) {
-        message = 'The requested API endpoint was not found. Please ensure the backend server is running.';
-      } else if (error.response.status === 405) {
-        message = 'Method Not Allowed (405): Please redeploy with the updated API configuration.';
-      } else if (error.response.status === 500) {
-        message = 'Server Error (500): An error occurred on the server. Please try again or check server logs.';
+      const data = error.response.data;
+      if (typeof data === 'object' && data !== null) {
+        if (typeof data.message === 'string') {
+          message = data.message;
+        } else if (typeof data.error === 'string') {
+          message = data.error;
+        } else if (typeof data.error === 'object' && data.error?.message) {
+          message = data.error.message;
+        } else if (typeof data.message === 'object') {
+          message = JSON.stringify(data.message);
+        }
+      } else if (typeof data === 'string' && !data.includes('<!DOCTYPE')) {
+        message = data;
+      }
+
+      if (!message || message === '[object Object]' || message === 'An error occurred') {
+        if (error.response.status === 404) {
+          message = 'The requested API endpoint was not found. Please ensure the backend server is running.';
+        } else if (error.response.status === 405) {
+          message = 'Method Not Allowed (405): Please redeploy with the updated API configuration.';
+        } else if (error.response.status === 500) {
+          message = 'Server Error (500): An error occurred on the server. Please try again or check server logs.';
+        }
       }
     } else if (error.message === 'Network Error') {
       message = 'Network error: Cannot reach the backend API server. Please check your connection or start the server.';
+    }
+
+    if (typeof message === 'object') {
+      message = JSON.stringify(message);
     }
 
     return Promise.reject(new Error(message));

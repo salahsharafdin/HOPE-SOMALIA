@@ -7,8 +7,21 @@ export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
   const addToast = useCallback((message, type = 'success', duration = 4000) => {
+    let cleanMessage = 'An unexpected event occurred';
+    if (typeof message === 'string') {
+      cleanMessage = message;
+    } else if (typeof message === 'object' && message !== null) {
+      cleanMessage = message.message || message.error || JSON.stringify(message);
+    } else if (message) {
+      cleanMessage = String(message);
+    }
+
+    if (cleanMessage === '[object Object]') {
+      cleanMessage = 'Unable to complete request. Please verify credentials or connection.';
+    }
+
     const id = Date.now() + Math.random();
-    setToasts((prev) => [...prev, { id, message, type }]);
+    setToasts((prev) => [...prev, { id, message: cleanMessage, type }]);
     setTimeout(() => {
       removeToast(id);
     }, duration);
