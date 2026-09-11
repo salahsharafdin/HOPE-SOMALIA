@@ -23,7 +23,7 @@ function createTransporters() {
   const configs = [];
 
   if (isGmail) {
-    // 1. Primary: Port 465 SSL Direct
+    // 1. Primary: Port 465 SSL Direct (fast timeout for serverless)
     configs.push({
       name: 'Gmail (Port 465 SSL)',
       transporter: nodemailer.createTransport({
@@ -32,9 +32,9 @@ function createTransporters() {
         secure: true,
         auth: { user, pass },
         tls: { rejectUnauthorized: false },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 15000,
+        connectionTimeout: 3000,
+        greetingTimeout: 3000,
+        socketTimeout: 4000,
       }),
     });
 
@@ -47,9 +47,9 @@ function createTransporters() {
         secure: false,
         auth: { user, pass },
         tls: { rejectUnauthorized: false },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 15000,
+        connectionTimeout: 3000,
+        greetingTimeout: 3000,
+        socketTimeout: 4000,
       }),
     });
 
@@ -59,6 +59,9 @@ function createTransporters() {
       transporter: nodemailer.createTransport({
         service: 'gmail',
         auth: { user, pass },
+        connectionTimeout: 3000,
+        greetingTimeout: 3000,
+        socketTimeout: 4000,
       }),
     });
   } else {
@@ -135,13 +138,9 @@ async function sendEmail({ to, subject, text, html }) {
   console.log(`📝 Message:\n${text || html}`);
   console.log('======================================================\n');
 
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error(lastError ? lastError.message : 'Email delivery failed across all SMTP methods');
-  }
-
   return { 
     success: false, 
-    error: lastError ? lastError.message : 'Unknown SMTP error',
+    error: lastError ? lastError.message : 'Email delivery failed across all SMTP methods',
     code: lastError ? lastError.code : 'UNKNOWN'
   };
 }

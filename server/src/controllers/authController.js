@@ -194,12 +194,6 @@ exports.login = async (req, res, next) => {
       emailSent = emailResult && emailResult.success === true;
     } catch (err) {
       console.error('Email sending error:', err.message || err);
-      if (process.env.NODE_ENV === 'production') {
-        return res.status(500).json({ 
-          success: false, 
-          message: 'We could not send the verification code. Please check your email configuration.' 
-        });
-      }
     }
 
     res.json({
@@ -345,12 +339,6 @@ exports.resendOtp = async (req, res, next) => {
       emailSent = emailResult && emailResult.success === true;
     } catch (err) {
       console.error('Resend OTP Email error:', err.message || err);
-      if (process.env.NODE_ENV === 'production') {
-        return res.status(500).json({ 
-          success: false, 
-          message: 'We could not send the verification code. Please check your email configuration.' 
-        });
-      }
     }
 
     res.json({
@@ -449,12 +437,6 @@ exports.forgotPassword = async (req, res, next) => {
       emailSent = emailResult && emailResult.success === true;
     } catch (err) {
       console.error('Forgot password email error:', err.message || err);
-      if (process.env.NODE_ENV === 'production') {
-        return res.status(500).json({ 
-          success: false, 
-          message: 'Could not send reset link. Please check your email configuration.' 
-        });
-      }
     }
 
     res.json({

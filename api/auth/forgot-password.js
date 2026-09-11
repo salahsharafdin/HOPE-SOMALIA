@@ -141,12 +141,6 @@ module.exports = async (req, res) => {
       });
     } catch (emailErr) {
       console.error('Email error in serverless function:', emailErr.message || emailErr);
-      if (process.env.NODE_ENV === 'production') {
-        return res.status(500).json({
-          success: false,
-          message: 'Could not send reset link. Please check your email configuration.',
-        });
-      }
     }
 
     return res.status(200).json({
