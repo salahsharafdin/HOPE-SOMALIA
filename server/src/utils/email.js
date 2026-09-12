@@ -23,18 +23,15 @@ function createTransporters() {
   const configs = [];
 
   if (isGmail) {
-    // 1. Primary: Port 465 SSL Direct (fast 2s timeout for serverless)
+    // 1. Primary: Gmail Service preset (fastest and most reliable)
     configs.push({
-      name: 'Gmail (Port 465 SSL)',
+      name: 'Gmail Service',
       transporter: nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
+        service: 'gmail',
         auth: { user, pass },
-        tls: { rejectUnauthorized: false },
-        connectionTimeout: 1800,
-        greetingTimeout: 1800,
-        socketTimeout: 2000,
+        connectionTimeout: 4000,
+        greetingTimeout: 4000,
+        socketTimeout: 4500,
       }),
     });
 
@@ -47,9 +44,24 @@ function createTransporters() {
         secure: false,
         auth: { user, pass },
         tls: { rejectUnauthorized: false },
-        connectionTimeout: 1800,
-        greetingTimeout: 1800,
-        socketTimeout: 2000,
+        connectionTimeout: 3500,
+        greetingTimeout: 3500,
+        socketTimeout: 4000,
+      }),
+    });
+
+    // 3. Fallback: Port 465 SSL Direct
+    configs.push({
+      name: 'Gmail (Port 465 SSL)',
+      transporter: nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: { user, pass },
+        tls: { rejectUnauthorized: false },
+        connectionTimeout: 3500,
+        greetingTimeout: 3500,
+        socketTimeout: 4000,
       }),
     });
   } else {
@@ -140,14 +152,20 @@ async function sendEmailInternal({ to, subject, text, html }) {
  * Prevents Vercel serverless function from ever reaching the 10-second limit
  */
 async function sendEmail(options) {
+  let timer = null;
   const timeoutPromise = new Promise((resolve) => {
-    setTimeout(() => {
-      console.warn('⚠️ [SMTP TIMEOUT] Email delivery took > 2.5s. Aborting early to avoid serverless timeout.');
+    timer = setTimeout(() => {
+      console.warn('⚠️ [SMTP TIMEOUT] Email delivery took > 5.5s. Aborting early to avoid serverless timeout.');
       resolve({ success: false, simulated: true, message: 'SMTP operation timed out' });
-    }, 2500);
+    }, 5500);
   });
 
-  return Promise.race([sendEmailInternal(options), timeoutPromise]);
+  try {
+    const result = await Promise.race([sendEmailInternal(options), timeoutPromise]);
+    return result;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 /**
