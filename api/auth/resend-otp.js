@@ -22,20 +22,25 @@ module.exports = async (req, res) => {
     }
     req.body = body;
 
-    await authController.resendOtp(req, res, (err) => {
-      if (err) {
-        console.error('Resend OTP error:', err);
-        return res.status(err.statusCode || 400).json({
-          success: false,
-          message: err.message || 'Failed to resend code.',
-        });
-      }
+    return new Promise((resolve) => {
+      authController.resendOtp(req, res, (err) => {
+        if (err && !res.headersSent) {
+          console.error('Resend OTP error:', err);
+          return res.status(err.statusCode || 400).json({
+            success: false,
+            message: err.message || 'Failed to resend code.',
+          });
+        }
+        resolve();
+      });
     });
   } catch (error) {
     console.error('Resend OTP catch:', error);
-    return res.status(400).json({
-      success: false,
-      message: error.message || 'Failed to resend code.',
-    });
+    if (!res.headersSent) {
+      return res.status(400).json({
+        success: false,
+        message: error.message || 'Failed to resend code.',
+      });
+    }
   }
 };

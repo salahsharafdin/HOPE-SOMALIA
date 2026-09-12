@@ -22,20 +22,29 @@ module.exports = async (req, res) => {
     }
     req.body = body;
 
-    await authController.login(req, res, (err) => {
-      if (err) {
-        console.error('Login error in serverless function:', err);
-        return res.status(err.statusCode || 400).json({
-          success: false,
-          message: err.message || 'Incorrect email or password.',
-        });
-      }
+    return new Promise((resolve) => {
+      authController.login(req, res, (err) => {
+        if (err && !res.headersSent) {
+          console.error('Login error in serverless function:', err);
+          const statusCode = err.statusCode || (err.name === 'ZodError' ? 400 : 400);
+          const message = err.name === 'ZodError'
+            ? 'Please provide a valid email and password'
+            : (typeof err === 'string' ? err : (err.message || 'Incorrect email or password.'));
+          res.status(statusCode).json({
+            success: false,
+            message,
+          });
+        }
+        resolve();
+      });
     });
   } catch (error) {
     console.error('Login handler catch:', error);
-    return res.status(400).json({
-      success: false,
-      message: error.message || 'Incorrect email or password.',
-    });
+    if (!res.headersSent) {
+      return res.status(400).json({
+        success: false,
+        message: error.message || 'Incorrect email or password.',
+      });
+    }
   }
 };

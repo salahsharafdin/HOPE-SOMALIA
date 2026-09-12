@@ -23,7 +23,7 @@ function createTransporters() {
   const configs = [];
 
   if (isGmail) {
-    // 1. Primary: Port 465 SSL Direct (fast timeout for serverless)
+    // 1. Primary: Port 465 SSL Direct (fast 2s timeout for serverless)
     configs.push({
       name: 'Gmail (Port 465 SSL)',
       transporter: nodemailer.createTransport({
@@ -32,9 +32,9 @@ function createTransporters() {
         secure: true,
         auth: { user, pass },
         tls: { rejectUnauthorized: false },
-        connectionTimeout: 3000,
-        greetingTimeout: 3000,
-        socketTimeout: 4000,
+        connectionTimeout: 1800,
+        greetingTimeout: 1800,
+        socketTimeout: 2000,
       }),
     });
 
@@ -47,21 +47,9 @@ function createTransporters() {
         secure: false,
         auth: { user, pass },
         tls: { rejectUnauthorized: false },
-        connectionTimeout: 3000,
-        greetingTimeout: 3000,
-        socketTimeout: 4000,
-      }),
-    });
-
-    // 3. Fallback: Service preset
-    configs.push({
-      name: 'Gmail (Service Preset)',
-      transporter: nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user, pass },
-        connectionTimeout: 3000,
-        greetingTimeout: 3000,
-        socketTimeout: 4000,
+        connectionTimeout: 1800,
+        greetingTimeout: 1800,
+        socketTimeout: 2000,
       }),
     });
   } else {
@@ -74,6 +62,9 @@ function createTransporters() {
         secure: port === 465,
         auth: { user, pass },
         tls: { rejectUnauthorized: false },
+        connectionTimeout: 2000,
+        greetingTimeout: 2000,
+        socketTimeout: 2500,
       }),
     });
   }
@@ -82,10 +73,9 @@ function createTransporters() {
 }
 
 /**
- * Sends transactional email to registered user
- * Supports both plain text and rich HTML emails
+ * Internal delivery attempt across configured transports
  */
-async function sendEmail({ to, subject, text, html }) {
+async function sendEmailInternal({ to, subject, text, html }) {
   const { configs, user, pass, from } = createTransporters();
 
   if (!user || !pass) {
@@ -118,14 +108,14 @@ async function sendEmail({ to, subject, text, html }) {
       lastError = error;
       console.error(`❌ [SMTP Attempt Failed - ${name}]: ${error.code || ''} - ${error.message}`);
       
-      // If authentication explicitly failed (invalid credentials), trying other ports will yield same result
-      if (error.code === 'EAUTH' || (error.response && error.response.includes('535'))) {
-        console.error(`\n🚨 [GMAIL AUTHENTICATION REJECTED]`);
-        console.error(`Google rejected the credentials for account: "${user}".`);
-        console.error(`Common reasons:`);
-        console.error(` 1. The 16-character App Password was generated for a different Google account.`);
-        console.error(` 2. 2-Step Verification is turned off on "${user}".`);
-        console.error(` 3. The App Password was revoked or typed incorrectly.\n`);
+      // If authentication explicitly failed or network connection timed out, stop retrying immediately
+      if (
+        error.code === 'EAUTH' || 
+        (error.response && error.response.includes('535')) ||
+        error.code === 'ETIMEDOUT' ||
+        error.code === 'ECONNREFUSED' ||
+        error.code === 'ENOTFOUND'
+      ) {
         break;
       }
     }
@@ -143,6 +133,21 @@ async function sendEmail({ to, subject, text, html }) {
     error: lastError ? lastError.message : 'Email delivery failed across all SMTP methods',
     code: lastError ? lastError.code : 'UNKNOWN'
   };
+}
+
+/**
+ * Sends transactional email with a guaranteed 2500ms timeout
+ * Prevents Vercel serverless function from ever reaching the 10-second limit
+ */
+async function sendEmail(options) {
+  const timeoutPromise = new Promise((resolve) => {
+    setTimeout(() => {
+      console.warn('⚠️ [SMTP TIMEOUT] Email delivery took > 2.5s. Aborting early to avoid serverless timeout.');
+      resolve({ success: false, simulated: true, message: 'SMTP operation timed out' });
+    }, 2500);
+  });
+
+  return Promise.race([sendEmailInternal(options), timeoutPromise]);
 }
 
 /**
