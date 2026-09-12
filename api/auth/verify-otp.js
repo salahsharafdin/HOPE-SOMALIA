@@ -22,20 +22,25 @@ module.exports = async (req, res) => {
     }
     req.body = body;
 
-    await authController.verifyOtp(req, res, (err) => {
-      if (err) {
-        console.error('Verify OTP error:', err);
-        return res.status(err.statusCode || 400).json({
-          success: false,
-          message: err.message || 'Incorrect verification code.',
-        });
-      }
+    return new Promise((resolve) => {
+      authController.verifyOtp(req, res, (err) => {
+        if (err && !res.headersSent) {
+          console.error('Verify OTP error:', err);
+          return res.status(err.statusCode || 400).json({
+            success: false,
+            message: err.message || 'Incorrect verification code.',
+          });
+        }
+        resolve();
+      });
     });
   } catch (error) {
     console.error('Verify OTP handler catch:', error);
-    return res.status(400).json({
-      success: false,
-      message: error.message || 'Incorrect verification code.',
-    });
+    if (!res.headersSent) {
+      return res.status(400).json({
+        success: false,
+        message: error.message || 'Incorrect verification code.',
+      });
+    }
   }
 };

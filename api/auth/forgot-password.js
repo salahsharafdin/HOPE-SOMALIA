@@ -133,25 +133,30 @@ module.exports = async (req, res) => {
 
     let emailSent = false;
     try {
-      emailSent = await sendEmail({
+      const emailResult = await sendEmail({
         to: user.email,
         subject: emailSubject,
         text: emailText,
         html: emailHtml,
       });
+      emailSent = emailResult && emailResult.success === true;
     } catch (emailErr) {
       console.error('Email error in serverless function:', emailErr.message || emailErr);
     }
 
     return res.status(200).json({
       success: true,
-      emailSent: !!emailSent,
-      message: 'Password reset link has been sent to your Gmail inbox.',
+      emailSent,
+      resetLink,
+      message: emailSent
+        ? 'Password reset link has been sent to your Gmail inbox.'
+        : 'Password reset link has been generated.',
     });
   } catch (error) {
-    return res.status(500).json({
+    console.error('Forgot-password catch:', error);
+    return res.status(400).json({
       success: false,
-      message: error.message || 'Could not send reset link. Please check your email configuration.',
+      message: error.message || 'Could not send reset link. Please check your email address.',
     });
   }
 };
