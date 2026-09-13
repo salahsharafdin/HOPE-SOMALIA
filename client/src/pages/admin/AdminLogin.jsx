@@ -73,7 +73,7 @@ export default function AdminLogin() {
   const [userId, setUserId] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [otpCode, setOtpCode] = useState('');
-  const [demoOtp, setDemoOtp] = useState('');
+  const [challengeToken, setChallengeToken] = useState('');
   const [cooldown, setCooldown] = useState(0);
 
   // Form for credentials step
@@ -154,17 +154,13 @@ export default function AdminLogin() {
       if (res.success && res.otpRequired) {
         setUserId(res.userId);
         setUserEmail(data.email);
+        if (res.challengeToken) {
+          setChallengeToken(res.challengeToken);
+        }
+        setOtpCode('');
         setStep('otp');
         setCooldown(45);
-        if (res.demoOtp) {
-          setDemoOtp(res.demoOtp);
-          setOtpCode(res.demoOtp);
-        }
-        if (res.emailSent === false) {
-          addToast(res.message || 'Verification code generated', 'info');
-        } else {
-          addToast('Verification code sent to your email', 'success');
-        }
+        addToast('Verification code sent to your email', 'success');
       }
     } catch (err) {
       addToast(err.message || 'Incorrect email or password.', 'error');
@@ -185,7 +181,8 @@ export default function AdminLogin() {
     try {
       const res = await api.post('/auth/verify-otp', {
         userId,
-        otpCode,
+        otpCode: otpCode.trim(),
+        challengeToken,
       });
 
       if (res.success && res.token) {
@@ -208,15 +205,11 @@ export default function AdminLogin() {
       const res = await api.post('/auth/resend-otp', { userId });
       if (res.success) {
         setCooldown(45);
-        if (res.demoOtp) {
-          setDemoOtp(res.demoOtp);
-          setOtpCode(res.demoOtp);
+        if (res.challengeToken) {
+          setChallengeToken(res.challengeToken);
         }
-        if (res.emailSent === false) {
-          addToast(res.message || 'New code generated', 'info');
-        } else {
-          addToast('A new verification code has been sent', 'success');
-        }
+        setOtpCode('');
+        addToast('A new verification code has been sent to your email', 'success');
       }
     } catch (err) {
       addToast(err.message || 'Failed to resend code', 'error');
@@ -385,12 +378,6 @@ export default function AdminLogin() {
                 <p className="text-[11px] text-slate-400">
                   We sent a verification code to your email address: <strong className="text-teal-300 font-mono">{maskEmail(userEmail)}</strong>. Enter the code below to continue.
                 </p>
-                {demoOtp && (
-                  <div className="mt-2 p-2 bg-teal-950/60 border border-teal-500/40 rounded-xl text-center">
-                    <span className="text-[11px] text-slate-300 block">Verification Code:</span>
-                    <span className="text-lg font-mono font-black text-teal-300 tracking-widest">{demoOtp}</span>
-                  </div>
-                )}
               </div>
 
               <div className="space-y-1.5">
