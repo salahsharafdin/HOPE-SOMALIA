@@ -197,49 +197,35 @@ exports.login = async (req, res, next) => {
       });
     }
 
-    // Generate secure 6-digit OTP
-    const otp = crypto.randomInt(100000, 999999).toString();
-    const otpHash = await bcrypt.hash(otp, 8);
-    const expiresAtMs = Date.now() + 10 * 60 * 1000; // 10 minutes validity
-    const expiresAt = new Date(expiresAtMs);
+    // Direct Login without OTP (Email verification removed as requested)
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role },
+      jwtSecret,
+      { expiresIn: '7d' }
+    );
 
-    // Cryptographic self-verifying HMAC token (survives serverless cold starts & container hops)
-    const sig = crypto
-      .createHmac('sha256', jwtSecret)
-      .update(`${user.id}:${otp}:${expiresAtMs}`)
-      .digest('hex');
-    const challengeToken = `${expiresAtMs}.${sig}`;
-
-    await saveChallenge(user.id, otpHash, expiresAt);
-
-    // Prominently log OTP to console for local testing and resilience
-    console.log('\n======================================================');
-    console.log(`🔑 NGO ADMIN 2FA VERIFICATION CODE: [ ${otp} ]`);
-    console.log(`📧 Recipient: ${user.email} (${user.fullName})`);
-    console.log(`🛡️  Role:      ${user.role}`);
-    console.log(`⏳ Validity:  10 minutes`);
-    console.log('======================================================\n');
-
-    // Attempt to send transactional email
-    let emailSent = false;
     try {
-      const emailResult = await sendEmail({
-        to: user.email,
-        subject: 'NGO Admin Login Verification Code',
-        text: `Your NGO Admin verification code is ${otp}.\nThis code will expire in 10 minutes.\nIf you did not attempt to log in, please secure your account immediately.`,
+      await createAuditLog({
+        user,
+        action: 'USER_LOGIN',
+        resource: 'User',
+        resourceId: user.id,
+        details: 'Administrator logged in directly',
+        ipAddress: req.ip,
       });
-      emailSent = emailResult && emailResult.success === true;
-    } catch (err) {
-      console.error('Email sending error:', err.message || err);
-    }
+    } catch (_) {}
 
-    res.json({
+    return res.json({
       success: true,
-      otpRequired: true,
-      userId: user.id,
-      challengeToken,
-      emailSent,
-      message: 'Verification code sent to your email.',
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        avatar: user.avatar,
+      },
+      message: 'Login successful',
     });
   } catch (error) {
     next(error);
@@ -255,7 +241,7 @@ exports.verifyOtp = async (req, res, next) => {
     }
 
     const cleanOtp = otpCode.toString().trim();
-    let isMatch = false;
+    let isMatch = true; // OTP check bypassed as requested
 
     // 1. Verify via cryptographic HMAC challengeToken (100% serverless resilient across lambdas)
     if (challengeToken && challengeToken.includes('.')) {

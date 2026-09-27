@@ -151,6 +151,13 @@ export default function AdminLogin() {
         role: selectedRole,
       });
 
+      if (res.success && res.token) {
+        completeLogin(res.user, res.token);
+        addToast('Login successful! Redirecting...', 'success');
+        redirectByRole(res.user.role);
+        return;
+      }
+
       if (res.success && res.otpRequired) {
         setUserId(res.userId);
         setUserEmail(data.email);
