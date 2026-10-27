@@ -1,22 +1,40 @@
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Send, CheckCircle2, User, Mail, Phone, Globe, Briefcase, FileText } from 'lucide-react';
 import api from '../../api/axios';
 import SEO from '../../components/common/SEO';
+import CountrySelect from '../../components/common/CountrySelect';
+import { countryNames } from '../../data/countries';
+import InternationalPhoneInput from '../../components/common/InternationalPhoneInput';
+import { validatePhoneForCountry } from '../../utils/phone';
 import { useToast } from '../../context/ToastContext';
 
-const volunteerSchema = z.object({
-  fullName: z.string().min(2, 'Full name is required'),
-  email: z.string().email('Invalid email address'),
-  phone: z.string().min(5, 'Phone number is required'),
-  country: z.string().min(2, 'Country is required'),
-  skills: z.string().min(2, 'Please list your key skills'),
-  experience: z.string().optional(),
-  availability: z.enum(['Full-time', 'Part-time', 'Weekends', 'Remote']),
-  motivation: z.string().min(15, 'Please share your motivation (min 15 characters)'),
-});
+const volunteerSchema = z
+  .object({
+    fullName: z.string().min(2, 'Full name is required'),
+    email: z.string().email('Invalid email address'),
+    phone: z.string().min(1, 'Phone number is required'),
+    country: z
+      .string()
+      .min(1, 'Please select your country')
+      .refine((val) => countryNames.includes(val), { message: 'Please select a valid country' }),
+    skills: z.string().min(2, 'Please list your key skills'),
+    experience: z.string().optional(),
+    availability: z.enum(['Full-time', 'Part-time', 'Weekends', 'Remote']),
+    motivation: z.string().min(15, 'Please share your motivation (min 15 characters)'),
+  })
+  .superRefine((data, ctx) => {
+    const phoneResult = validatePhoneForCountry(data.phone, data.country, { required: true });
+    if (!phoneResult.ok) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['phone'],
+        message: phoneResult.message,
+      });
+    }
+  });
 
 export default function Volunteer() {
   const [submitting, setSubmitting] = useState(false);
@@ -27,6 +45,8 @@ export default function Volunteer() {
     register,
     handleSubmit,
     reset,
+    control,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(volunteerSchema),
@@ -36,10 +56,16 @@ export default function Volunteer() {
     },
   });
 
+  const selectedCountry = watch('country');
+
   const onSubmit = async (data) => {
     setSubmitting(true);
     try {
-      const res = await api.post('/volunteers', data);
+      const phoneResult = validatePhoneForCountry(data.phone, data.country, { required: true });
+      const res = await api.post('/volunteers', {
+        ...data,
+        phone: phoneResult.e164,
+      });
       if (res.success) {
         setSubmitted(true);
         addToast('Volunteer application submitted successfully!', 'success');
@@ -119,25 +145,44 @@ export default function Volunteer() {
 
                   {/* Phone */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-navy-900 block">Phone Number *</label>
-                    <input
-                      type="text"
-                      {...register('phone')}
-                      placeholder="e.g. +252 61 555 4433"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-navy-900 focus:outline-none focus:border-brand-500"
+                    <label className="text-xs font-bold text-navy-900 block" htmlFor="volunteer-phone">
+                      Phone Number *
+                    </label>
+                    <Controller
+                      name="phone"
+                      control={control}
+                      render={({ field }) => (
+                        <InternationalPhoneInput
+                          id="volunteer-phone"
+                          value={field.value || ''}
+                          onChange={field.onChange}
+                          linkedCountryName={selectedCountry}
+                          error={errors.phone?.message}
+                          placeholder=""
+                          required
+                        />
+                      )}
                     />
-                    {errors.phone && <p className="text-[11px] text-rose-600 font-medium">{errors.phone.message}</p>}
                   </div>
 
                   {/* Country */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-navy-900 block">Country of Residence *</label>
-                    <input
-                      type="text"
-                      {...register('country')}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-navy-900 focus:outline-none focus:border-brand-500"
+                    <label className="text-xs font-bold text-navy-900 block" htmlFor="volunteer-country">
+                      Country of Residence *
+                    </label>
+                    <Controller
+                      name="country"
+                      control={control}
+                      render={({ field }) => (
+                        <CountrySelect
+                          id="volunteer-country"
+                          value={field.value}
+                          onChange={field.onChange}
+                          error={errors.country?.message}
+                          placeholder="Select your country"
+                        />
+                      )}
                     />
-                    {errors.country && <p className="text-[11px] text-rose-600 font-medium">{errors.country.message}</p>}
                   </div>
                 </div>
 

@@ -48,6 +48,7 @@ import AdminMedia from './pages/admin/AdminMedia';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminAuditLogs from './pages/admin/AdminAuditLogs';
 import AdminSettings from './pages/admin/AdminSettings';
+import AdminProfile from './pages/admin/AdminProfile';
 
 // Protected Route Guard
 function ProtectedAdminRoute({ children }) {
@@ -57,6 +58,34 @@ function ProtectedAdminRoute({ children }) {
   }
   if (!isAuthenticated) {
     return <Navigate to="/admin/login" replace />;
+  }
+  return children;
+}
+
+function RequireContentEditor({ children }) {
+  const { user, isAuthenticated, loading } = useAuth();
+  if (loading) {
+    return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-teal-400 font-bold">Verifying Authentication...</div>;
+  }
+  if (!isAuthenticated) {
+    return <Navigate to="/admin/login" replace />;
+  }
+  if (user?.role !== 'SUPER_ADMIN' && user?.role !== 'CONTENT_MANAGER') {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+  return children;
+}
+
+function RequireSuperAdmin({ children }) {
+  const { user, isAuthenticated, loading } = useAuth();
+  if (loading) {
+    return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-teal-400 font-bold">Verifying Authentication...</div>;
+  }
+  if (!isAuthenticated) {
+    return <Navigate to="/admin/login" replace />;
+  }
+  if (user?.role !== 'SUPER_ADMIN') {
+    return <Navigate to="/admin/dashboard" replace />;
   }
   return children;
 }
@@ -106,7 +135,14 @@ export default function App() {
               <Route index element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="dashboard" element={<AdminDashboard />} />
               <Route path="homepage" element={<AdminHomepage />} />
-              <Route path="about" element={<AdminAbout />} />
+              <Route
+                path="about"
+                element={
+                  <RequireContentEditor>
+                    <AdminAbout />
+                  </RequireContentEditor>
+                }
+              />
               <Route path="programs" element={<AdminPrograms />} />
               <Route path="projects" element={<AdminProjects />} />
               <Route path="news" element={<AdminNews />} />
@@ -119,9 +155,24 @@ export default function App() {
               <Route path="messages" element={<AdminMessages />} />
               <Route path="documents" element={<AdminDocuments />} />
               <Route path="media" element={<AdminMedia />} />
-              <Route path="users" element={<AdminUsers />} />
-              <Route path="audit-logs" element={<AdminAuditLogs />} />
+              <Route
+                path="users"
+                element={
+                  <RequireSuperAdmin>
+                    <AdminUsers />
+                  </RequireSuperAdmin>
+                }
+              />
+              <Route
+                path="audit-logs"
+                element={
+                  <RequireSuperAdmin>
+                    <AdminAuditLogs />
+                  </RequireSuperAdmin>
+                }
+              />
               <Route path="settings" element={<AdminSettings />} />
+              <Route path="profile" element={<AdminProfile />} />
               <Route path="content" element={<Navigate to="/admin/news" replace />} />
               <Route path="finance" element={<Navigate to="/admin/donations" replace />} />
               <Route path="staff" element={<Navigate to="/admin/volunteers" replace />} />

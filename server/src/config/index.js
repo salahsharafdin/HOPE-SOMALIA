@@ -15,11 +15,17 @@ if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
 }
 
 let prisma = null;
-try {
-  const { PrismaClient } = require('@prisma/client');
-  prisma = new PrismaClient();
-} catch (err) {
-  console.warn('⚠️ WARNING: Could not initialize PrismaClient:', err.message);
+if (process.env.DATABASE_URL) {
+  try {
+    const { PrismaClient } = require('@prisma/client');
+    prisma = new PrismaClient();
+  } catch (err) {
+    console.warn('⚠️ WARNING: Could not initialize PrismaClient:', err.message);
+  }
+} else {
+  console.warn(
+    'ℹ️ DATABASE_URL is not set — auth and admin login will use built-in fallback accounts (local dev).'
+  );
 }
 
 module.exports = {

@@ -59,8 +59,15 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('hope_somalia_user');
   };
 
+  const updateUser = (userData) => {
+    setUser(userData);
+    localStorage.setItem('hope_somalia_user', JSON.stringify(userData));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, isAuthenticated: !!user, loading, login, completeLogin, logout }}>
+    <AuthContext.Provider
+      value={{ user, token, isAuthenticated: !!user, loading, login, completeLogin, logout, updateUser }}
+    >
       {children}
     </AuthContext.Provider>
   );

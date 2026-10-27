@@ -46,6 +46,15 @@ api.interceptors.response.use(
 
     let message = error.message || 'An error occurred';
 
+    if (
+      error.response?.status === 500 &&
+      (!error.response.data ||
+        (typeof error.response.data === 'string' && error.response.data.trim() === ''))
+    ) {
+      message =
+        'Backend API is not reachable. Start the full dev stack from the project root with: npm run dev';
+    }
+
     if (error.response?.data) {
       const data = error.response.data;
       if (typeof data === 'object' && data !== null) {

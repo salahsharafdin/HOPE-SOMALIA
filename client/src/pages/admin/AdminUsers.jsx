@@ -4,6 +4,7 @@ import api from '../../api/axios';
 import SEO from '../../components/common/SEO';
 import { useToast } from '../../context/ToastContext';
 import ConfirmModal from '../../components/common/ConfirmModal';
+import AdminAvatar from '../../components/admin/AdminAvatar';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -12,12 +13,20 @@ export default function AdminUsers() {
   const [deleteId, setDeleteId] = useState(null);
   const { addToast } = useToast();
 
+  const [showPassword, setShowPassword] = useState(false);
+
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     password: '',
     role: 'CONTENT_MANAGER',
   });
+
+  const openCreateModal = () => {
+    setShowPassword(false);
+    setFormData({ fullName: '', email: '', password: '', role: 'CONTENT_MANAGER' });
+    setModalOpen(true);
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -41,6 +50,7 @@ export default function AdminUsers() {
       const res = await api.post('/users', formData);
       if (res.success) {
         addToast('New administrator created successfully', 'success');
+        setShowPassword(false);
         setModalOpen(false);
         fetchUsers();
       }
@@ -87,10 +97,7 @@ export default function AdminUsers() {
             <h1 className="text-2xl font-black text-white">Administrator Accounts & Roles</h1>
           </div>
           <button
-            onClick={() => {
-              setFormData({ fullName: '', email: '', password: '', role: 'CONTENT_MANAGER' });
-              setModalOpen(true);
-            }}
+            onClick={openCreateModal}
             className="px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2"
           >
             <UserPlus className="w-4 h-4" /> Add Administrator
@@ -112,7 +119,11 @@ export default function AdminUsers() {
                 {users.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-900/60 transition-colors">
                     <td className="p-4 flex items-center gap-3">
-                      <img src={item.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'} alt="" className="w-9 h-9 rounded-full object-cover border border-teal-500 shrink-0" />
+                      <AdminAvatar
+                        avatar={item.avatar}
+                        fullName={item.fullName}
+                        className="w-9 h-9 rounded-full border border-teal-500 text-[9px]"
+                      />
                       <div>
                         <span className="font-bold text-white block">{item.fullName}</span>
                         <span className="text-[10px] text-slate-500 font-mono">{item.email}</span>
@@ -160,7 +171,16 @@ export default function AdminUsers() {
           <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="font-bold text-white text-base">Add Administrator Account</h3>
-              <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPassword(false);
+                  setModalOpen(false);
+                }}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             <form onSubmit={handleCreate} className="space-y-4 text-xs">
@@ -173,8 +193,29 @@ export default function AdminUsers() {
                 <input type="email" required value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none" />
               </div>
               <div className="space-y-1.5">
-                <label className="font-bold text-slate-300 block">Password *</label>
-                <input type="password" required value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none" />
+                <label className="font-bold text-slate-300 block" htmlFor="admin-create-password">
+                  Password *
+                </label>
+                <input
+                  id="admin-create-password"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  autoComplete="new-password"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-teal-500"
+                />
+                <label
+                  className="flex items-center gap-2.5 pt-0.5 cursor-pointer select-none min-h-[44px] sm:min-h-0 sm:py-1 w-fit"
+                >
+                  <input
+                    type="checkbox"
+                    checked={showPassword}
+                    onChange={(e) => setShowPassword(e.target.checked)}
+                    className="h-4 w-4 shrink-0 rounded border-slate-600 bg-slate-950 text-teal-500 focus:ring-2 focus:ring-teal-500/40 focus:ring-offset-0 cursor-pointer accent-teal-500"
+                  />
+                  <span className="text-xs text-slate-300 font-medium">Show password</span>
+                </label>
               </div>
               <div className="space-y-1.5">
                 <label className="font-bold text-slate-300 block">Role Assignment *</label>
@@ -189,7 +230,16 @@ export default function AdminUsers() {
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
-                <button type="button" onClick={() => setModalOpen(false)} className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300">Cancel</button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPassword(false);
+                    setModalOpen(false);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300"
+                >
+                  Cancel
+                </button>
                 <button type="submit" className="px-4 py-2 rounded-xl bg-teal-600 text-white font-bold">Create User</button>
               </div>
             </form>

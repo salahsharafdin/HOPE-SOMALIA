@@ -1,7 +1,48 @@
+const crypto = require('crypto');
 const { prisma } = require('../config');
 const { donationSchema } = require('../validators');
 const paymentService = require('../utils/payment');
 const { createAuditLog } = require('../utils/auditLogger');
+
+global._localDonations = global._localDonations || [];
+
+function isDatabaseUnavailableError(error) {
+  if (!error) return false;
+  if (error.code === 'P1001' || error.code === 'P1017') return true;
+  const message = error.message || '';
+  return (
+    message.includes("Can't reach database server") ||
+    message.includes('ECONNREFUSED') ||
+    message.includes('Connection refused')
+  );
+}
+
+async function saveDonation(data, paymentResult) {
+  const record = {
+    ...data,
+    status: paymentResult.status,
+    transactionId: paymentResult.transactionId,
+  };
+
+  if (prisma?.donation) {
+    try {
+      return await prisma.donation.create({ data: record });
+    } catch (err) {
+      if (!isDatabaseUnavailableError(err)) throw err;
+      console.warn('⚠️ Database unreachable — saving donation to local session store.');
+    }
+  }
+
+  const now = new Date();
+  const donation = {
+    id: crypto.randomUUID(),
+    ...record,
+    createdAt: now,
+    updatedAt: now,
+  };
+  global._localDonations.unshift(donation);
+  return donation;
+}
 
 exports.createDonation = async (req, res, next) => {
   try {
@@ -15,13 +56,7 @@ exports.createDonation = async (req, res, next) => {
       paymentMethod: data.paymentMethod,
     });
 
-    const donation = await prisma.donation.create({
-      data: {
-        ...data,
-        status: paymentResult.status,
-        transactionId: paymentResult.transactionId,
-      },
-    });
+    const donation = await saveDonation(data, paymentResult);
 
     res.status(201).json({
       success: true,
@@ -47,10 +82,20 @@ exports.getAllDonations = async (req, res, next) => {
       ];
     }
 
-    const donations = await prisma.donation.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-    });
+    let donations = [];
+    if (prisma?.donation) {
+      try {
+        donations = await prisma.donation.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+        });
+      } catch (err) {
+        if (!isDatabaseUnavailableError(err)) throw err;
+      }
+    }
+    if (global._localDonations.length) {
+      donations = [...global._localDonations, ...donations];
+    }
 
     const totalAmount = donations.reduce((acc, curr) => (curr.status === 'Paid' ? acc + curr.amount : acc), 0);
 

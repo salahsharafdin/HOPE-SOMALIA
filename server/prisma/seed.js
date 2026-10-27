@@ -496,6 +496,70 @@ async function main() {
     { key: 'hero_headline', value: 'Creating Hope. Changing Lives. Building Stronger Communities.' },
     { key: 'hero_description', value: 'We work directly with communities to create sustainable solutions in education, healthcare, clean water, livelihoods, and rapid emergency response.' },
     { key: 'hero_image', value: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=1920&q=80' },
+    { key: 'about_hero_title', value: 'Dedicated To Restoring Dignity & Hope' },
+    {
+      key: 'about_hero_description',
+      value:
+        'Established in 2018, Hope Somalia Foundation is a community-anchored humanitarian organization working to solve key challenges in education, health, clean water, and climate resilience.',
+    },
+    { key: 'about_story_title', value: 'Rooted In Local Communities, Serving With Integrity' },
+    {
+      key: 'about_story',
+      value:
+        'Hope Somalia Foundation was founded by a coalition of local humanitarian professionals, physicians, and community leaders determined to create a transparent, efficient non-governmental organization capable of acting swiftly during crises while building long-term local resilience.',
+    },
+    {
+      key: 'about_story_p2',
+      value:
+        'Registered under the Federal Ministry of Planning, Investment and Economic Development (Reg: SOM-2018-042), we collaborate with international agencies, UN bodies, and local councils to ensure every dollar directly impacts families on the ground.',
+    },
+    {
+      key: 'about_image',
+      value: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80',
+    },
+    {
+      key: 'about_mission',
+      value:
+        'To empower vulnerable communities across Somalia by facilitating sustainable access to clean water, quality education, lifesaving maternal healthcare, climate-adapted farming, and rapid emergency aid.',
+    },
+    {
+      key: 'about_vision',
+      value:
+        'A peaceful, resilient Horn of Africa where every child has access to quality learning, mothers give birth safely, and communities thrive through self-sustaining livelihoods.',
+    },
+    {
+      key: 'about_values',
+      value:
+        'Trust & Transparency: Rigorous financial auditing., Human Dignity: Respect for local culture and community leadership., Sustainability: Building self-reliant systems over aid dependency.',
+    },
+    { key: 'about_efficiency_stat', value: '88.4% Field Efficiency' },
+    { key: 'about_efficiency_label', value: 'Direct allocation to ground operations' },
+    {
+      key: 'about_leadership_team',
+      value: JSON.stringify([
+        {
+          id: 'lead-abdirahman-hassan',
+          name: 'Dr. Abdirahman Hassan',
+          title: 'Executive Director & Founder',
+          bio: 'Over 18 years leading international development and public health initiatives across the Horn of Africa.',
+          image: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80',
+        },
+        {
+          id: 'lead-fatima-omar',
+          name: 'Fatima Omar',
+          title: 'Director of Programs & Field Operations',
+          bio: 'Specialist in emergency rapid deployment, community empowerment, and maternal health access.',
+          image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80',
+        },
+        {
+          id: 'lead-mohamed-jama',
+          name: 'Mohamed Jama',
+          title: 'Head of Financial Auditing & Accountability',
+          bio: 'Certified accountant overseeing institutional donor compliance, transparency audits, and budget allocations.',
+          image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
+        },
+      ]),
+    },
   ];
 
   for (const s of defaultSettings) {

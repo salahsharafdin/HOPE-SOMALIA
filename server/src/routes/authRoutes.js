@@ -10,6 +10,7 @@ router.post('/forgot-password', authController.forgotPassword);
 router.post('/reset-password', authController.resetPasswordWithToken);
 router.post('/change-password', authenticate, authController.changePassword);
 router.get('/me', authenticate, authController.getMe);
+router.put('/profile', authenticate, authController.updateProfile);
 router.post('/logout', authenticate, authController.logout);
 router.get('/test-smtp', authController.testSmtp);
 

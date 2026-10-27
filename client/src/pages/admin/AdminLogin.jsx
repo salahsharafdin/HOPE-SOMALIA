@@ -75,6 +75,7 @@ export default function AdminLogin() {
   const [otpCode, setOtpCode] = useState('');
   const [challengeToken, setChallengeToken] = useState('');
   const [cooldown, setCooldown] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Form for credentials step
   const {
@@ -100,6 +101,12 @@ export default function AdminLogin() {
       return () => clearTimeout(timer);
     }
   }, [cooldown]);
+
+  useEffect(() => {
+    if (step !== 'credentials') {
+      setShowPassword(false);
+    }
+  }, [step]);
 
   const maskEmail = (email) => {
     if (!email) return '';
@@ -355,13 +362,24 @@ export default function AdminLogin() {
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     {...register('password')}
                     autoComplete="new-password"
                     placeholder="••••••••"
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-teal-500"
                   />
                 </div>
+                <label
+                  className="flex items-center gap-2.5 pt-1 cursor-pointer select-none min-h-[44px] sm:min-h-0 sm:py-1 w-fit"
+                >
+                  <input
+                    type="checkbox"
+                    checked={showPassword}
+                    onChange={(e) => setShowPassword(e.target.checked)}
+                    className="h-4 w-4 shrink-0 rounded border-slate-600 bg-slate-950 text-teal-500 focus:ring-2 focus:ring-teal-500/40 focus:ring-offset-0 focus:ring-offset-slate-900 cursor-pointer accent-teal-500"
+                  />
+                  <span className="text-xs text-slate-300 font-medium">Show password</span>
+                </label>
                 {errors.password && <p className="text-[11px] text-rose-400">{errors.password.message}</p>}
               </div>
 

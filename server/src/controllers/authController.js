@@ -6,6 +6,7 @@ const { prisma, jwtSecret } = require('../config');
 const { createAuditLog } = require('../utils/auditLogger');
 const { sendEmail, testSmtpConnection } = require('../utils/email');
 const { getClientBaseUrl } = require('../utils/urlHelper');
+const { mergeUserProfile, setProfileOverrides, publicUserFields } = require('../utils/adminProfileStore');
 
 // Registered Administrator Accounts (Fallback store for serverless resilience)
 const REGISTERED_ADMINS = [
@@ -60,7 +61,7 @@ async function findUserByEmail(email) {
   try {
     if (prisma && prisma.user) {
       const user = await prisma.user.findUnique({ where: { email: normalized } });
-      if (user) return user;
+      if (user?.passwordHash) return user;
     }
   } catch (_) {
     // Database connection error fallback
@@ -76,6 +77,12 @@ async function findUserById(id) {
     }
   } catch (_) {}
   return REGISTERED_ADMINS.find((u) => u.id === id) || null;
+}
+
+async function buildAuthUser(user) {
+  if (!user) return null;
+  const fresh = await findUserById(user.id);
+  return publicUserFields(mergeUserProfile(fresh || user));
 }
 
 // Helper: Save OTP / Reset Challenge
@@ -152,6 +159,13 @@ exports.login = async (req, res, next) => {
       });
     }
 
+    if (!user.passwordHash || typeof user.passwordHash !== 'string') {
+      return res.status(401).json({
+        success: false,
+        message: 'Incorrect email or password.',
+      });
+    }
+
     let isPasswordValid = await bcrypt.compare(validatedData.password, user.passwordHash);
     const isSalahAccount = (user.email === 'salahsharafdin@gmail.com' || user.email === 'salasharafdin@gmail.com');
 
@@ -215,16 +229,12 @@ exports.login = async (req, res, next) => {
       });
     } catch (_) {}
 
+    const authUser = await buildAuthUser(user);
+
     return res.json({
       success: true,
       token,
-      user: {
-        id: user.id,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role,
-        avatar: user.avatar,
-      },
+      user: authUser,
       message: 'Login successful',
     });
   } catch (error) {
@@ -314,16 +324,12 @@ exports.verifyOtp = async (req, res, next) => {
       });
     } catch (_) {}
 
+    const authUser = await buildAuthUser(user);
+
     res.json({
       success: true,
       token,
-      user: {
-        id: user.id,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role,
-        avatar: user.avatar,
-      },
+      user: authUser,
       mustChangePassword: false,
     });
   } catch (error) {
@@ -583,17 +589,13 @@ exports.resetPasswordWithToken = async (req, res, next) => {
       { expiresIn: '7d' }
     );
 
+    const authUser = await buildAuthUser(user);
+
     res.json({
       success: true,
       message: 'Password reset successfully! You are now logged in.',
       token: authToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role,
-        avatar: user.avatar,
-      },
+      user: authUser,
     });
   } catch (error) {
     next(error);
@@ -640,9 +642,154 @@ exports.changePassword = async (req, res, next) => {
 
 exports.getMe = async (req, res, next) => {
   try {
+    const authUser = await buildAuthUser(req.user);
     res.json({
       success: true,
-      user: req.user,
+      user: authUser,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const profileUpdateSchema = z
+  .object({
+    fullName: z.string().min(2, 'Full name must be at least 2 characters'),
+    email: z.string().email('Invalid email address'),
+    avatar: z.string().optional(),
+    currentPassword: z.string().optional(),
+    newPassword: z.string().min(6, 'New password must be at least 6 characters').optional(),
+  })
+  .refine((data) => !data.newPassword || data.currentPassword, {
+    message: 'Current password is required to set a new password.',
+    path: ['currentPassword'],
+  });
+
+exports.updateProfile = async (req, res, next) => {
+  try {
+    const data = profileUpdateSchema.parse(req.body);
+    const userRecord = await findUserById(req.user.id);
+
+    if (!userRecord) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    const normalizedEmail = data.email.toLowerCase().trim();
+    const emailChanging = normalizedEmail !== userRecord.email.toLowerCase();
+
+    if (emailChanging) {
+      const emailTaken = await findUserByEmail(normalizedEmail);
+      if (emailTaken && emailTaken.id !== userRecord.id) {
+        return res.status(400).json({ success: false, message: 'This email address is already in use.' });
+      }
+    }
+
+    if (data.newPassword) {
+      const isMatch = await bcrypt.compare(data.currentPassword || '', userRecord.passwordHash);
+      if (!isMatch) {
+        return res.status(400).json({ success: false, message: 'Incorrect current password.' });
+      }
+    }
+
+    if (data.newPassword) {
+      const passwordHash = await bcrypt.hash(data.newPassword, 10);
+      await updatePassword(userRecord, passwordHash);
+    }
+
+    const profileData = {
+      fullName: data.fullName.trim(),
+      email: normalizedEmail,
+    };
+    const avatarProvided = data.avatar !== undefined;
+    if (avatarProvided) {
+      profileData.avatar = data.avatar === '' ? null : data.avatar;
+    }
+
+    let dbUser = null;
+    const userSelect = {
+      id: true,
+      email: true,
+      fullName: true,
+      role: true,
+      status: true,
+      avatar: true,
+    };
+
+    try {
+      if (prisma?.user) {
+        try {
+          dbUser = await prisma.user.update({
+            where: { id: req.user.id },
+            data: profileData,
+            select: userSelect,
+          });
+        } catch (err) {
+          if (err.code === 'P2025') {
+            const existingByEmail = await prisma.user.findUnique({
+              where: { email: userRecord.email.toLowerCase() },
+            });
+            if (existingByEmail) {
+              dbUser = await prisma.user.update({
+                where: { id: existingByEmail.id },
+                data: profileData,
+                select: userSelect,
+              });
+            } else {
+              dbUser = await prisma.user.create({
+                data: {
+                  id: req.user.id,
+                  email: profileData.email,
+                  fullName: profileData.fullName,
+                  avatar: profileData.avatar ?? userRecord.avatar ?? null,
+                  role: userRecord.role || req.user.role,
+                  status: 'ACTIVE',
+                  passwordHash: userRecord.passwordHash,
+                },
+                select: userSelect,
+              });
+            }
+          } else {
+            throw err;
+          }
+        }
+      }
+    } catch (err) {
+      if (err.code === 'P2002') {
+        return res.status(400).json({ success: false, message: 'This email address is already in use.' });
+      }
+    }
+
+    const fallbackAdmin = REGISTERED_ADMINS.find((u) => u.id === req.user.id);
+    if (fallbackAdmin) {
+      Object.assign(fallbackAdmin, profileData);
+    }
+
+    const overridePatch = {
+      fullName: profileData.fullName,
+      email: profileData.email,
+    };
+    if (avatarProvided) {
+      overridePatch.avatar = profileData.avatar;
+    }
+    setProfileOverrides(req.user.id, overridePatch);
+
+    const updatedUser = await buildAuthUser(dbUser || { ...req.user, ...profileData });
+
+    try {
+      await createAuditLog({
+        user: updatedUser,
+        action: 'UPDATE_PROFILE',
+        resource: 'User',
+        resourceId: updatedUser.id,
+        details: 'Administrator updated their profile',
+        ipAddress: req.ip,
+      });
+    } catch (_) {}
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: updatedUser,
     });
   } catch (error) {
     next(error);

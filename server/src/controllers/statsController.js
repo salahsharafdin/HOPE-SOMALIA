@@ -35,6 +35,8 @@ exports.getPublicStats = async (req, res, next) => {
 
 exports.getAdminDashboardStats = async (req, res, next) => {
   try {
+    const isSuperAdmin = req.user?.role === 'SUPER_ADMIN';
+
     const [
       totalProjects,
       activeProjects,
@@ -59,12 +61,16 @@ exports.getAdminDashboardStats = async (req, res, next) => {
       prisma.contactMessage.count(),
       prisma.contactMessage.count({ where: { isRead: false } }),
       prisma.donation.findMany({ where: { status: 'Paid' } }),
-      prisma.donation.findMany({ orderBy: { createdAt: 'desc' }, take: 5 }),
+      isSuperAdmin
+        ? prisma.donation.findMany({ orderBy: { createdAt: 'desc' }, take: 5 })
+        : Promise.resolve([]),
       prisma.volunteer.findMany({ orderBy: { createdAt: 'desc' }, take: 5 }),
       prisma.contactMessage.findMany({ orderBy: { createdAt: 'desc' }, take: 5 }),
       prisma.project.findMany({ orderBy: { createdAt: 'desc' }, take: 5, include: { program: true } }),
       prisma.news.findMany({ orderBy: { createdAt: 'desc' }, take: 5 }),
-      prisma.auditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 8 }),
+      isSuperAdmin
+        ? prisma.auditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 8 })
+        : Promise.resolve([]),
     ]);
 
     const totalDonationAmount = donationsList.reduce((sum, d) => sum + d.amount, 0);
@@ -104,12 +110,12 @@ exports.getAdminDashboardStats = async (req, res, next) => {
           projectStatusDistribution,
         },
         recentActivity: {
-          donations: recentDonations,
+          donations: isSuperAdmin ? recentDonations : [],
           volunteers: recentVolunteers,
           messages: recentMessages,
           projects: recentProjects,
           news: recentNews,
-          auditLogs,
+          auditLogs: isSuperAdmin ? auditLogs : [],
         },
       },
     });

@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "build": "prisma generate",
+    "postinstall": "prisma generate",
     "dev": "node --watch src/index.js",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",

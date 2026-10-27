@@ -14,6 +14,9 @@ export function getImageUrl(url) {
       const host = rawApiUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
       return `${host}${url}`;
     }
+    if (typeof window !== 'undefined' && window.location?.origin) {
+      return `${window.location.origin}${url}`;
+    }
     return url;
   }
   return url;

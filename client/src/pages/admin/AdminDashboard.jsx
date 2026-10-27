@@ -4,8 +4,11 @@ import { DollarSign, FolderKanban, Users, MessageSquare, HeartHandshake, ShieldA
 import api from '../../api/axios';
 import SEO from '../../components/common/SEO';
 import Skeleton from '../../components/common/Skeleton';
+import { useAuth } from '../../context/AuthContext';
 
 export default function AdminDashboard() {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -39,7 +42,7 @@ export default function AdminDashboard() {
     <>
       <SEO title="Admin Overview Dashboard" />
 
-      <div className="space-y-8">
+      <div className="space-y-8 min-w-0 max-w-full overflow-x-hidden">
         {/* Welcome Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-950 p-6 rounded-2xl border border-slate-800">
           <div>
@@ -47,9 +50,11 @@ export default function AdminDashboard() {
             <h1 className="text-2xl font-black text-white">System Dashboard Overview</h1>
           </div>
           <div className="flex items-center gap-3">
-            <Link to="/admin/donations" className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md">
-              View Finance
-            </Link>
+            {isSuperAdmin && (
+              <Link to="/admin/donations" className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md">
+                View Finance
+              </Link>
+            )}
             <Link to="/admin/projects" className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-md">
               New Project
             </Link>
@@ -154,52 +159,72 @@ export default function AdminDashboard() {
 
         </div>
 
-        {/* Recent Activity Feeds */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Recent Donations */}
-          <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="font-bold text-white text-sm">Recent Donations Received</h3>
-              <Link to="/admin/donations" className="text-xs font-bold text-teal-400 hover:underline">View All →</Link>
-            </div>
-            <div className="space-y-3">
-              {(recent.donations || []).map((d) => (
-                <div key={d.id} className="p-3 rounded-xl bg-slate-900 border border-slate-800/80 flex items-center justify-between text-xs">
-                  <div>
-                    <h4 className="font-bold text-white">{d.donorName}</h4>
-                    <span className="text-slate-400 text-[10px]">{d.purpose} • {d.paymentMethod}</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="font-extrabold text-emerald-400 block">${d.amount} {d.currency}</span>
-                    <span className="text-[10px] text-slate-500">{new Date(d.createdAt).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Audit Logs */}
-          <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="font-bold text-white text-sm">System Audit Activity</h3>
-              <Link to="/admin/audit-logs" className="text-xs font-bold text-teal-400 hover:underline">View All →</Link>
-            </div>
-            <div className="space-y-3">
-              {(recent.auditLogs || []).map((log) => (
-                <div key={log.id} className="p-3 rounded-xl bg-slate-900 border border-slate-800/80 flex items-center justify-between text-xs">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-white">{log.userName}</span>
-                      <span className="px-1.5 py-0.5 rounded bg-slate-800 text-[9px] font-bold text-teal-400 uppercase">{log.action}</span>
+        {isSuperAdmin && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
+            {/* Recent Donations */}
+            <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 className="font-bold text-white text-sm">Recent Donations Received</h3>
+                <Link to="/admin/donations" className="text-xs font-bold text-teal-400 hover:underline">View All →</Link>
+              </div>
+              <div className="space-y-3">
+                {(recent.donations || []).map((d) => (
+                  <div key={d.id} className="p-3 rounded-xl bg-slate-900 border border-slate-800/80 flex items-center justify-between text-xs">
+                    <div>
+                      <h4 className="font-bold text-white">{d.donorName}</h4>
+                      <span className="text-slate-400 text-[10px]">{d.purpose} • {d.paymentMethod}</span>
                     </div>
-                    <p className="text-slate-400 text-[11px] truncate max-w-xs">{log.details}</p>
+                    <div className="text-right">
+                      <span className="font-extrabold text-emerald-400 block">${d.amount} {d.currency}</span>
+                      <span className="text-[10px] text-slate-500">{new Date(d.createdAt).toLocaleDateString()}</span>
+                    </div>
                   </div>
-                  <span className="text-[10px] text-slate-500 shrink-0">{new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
-              ))}
+                ))}
+              </div>
+            </div>
+
+            {/* Audit Logs */}
+            <div className="bg-slate-950 p-4 sm:p-6 rounded-2xl border border-slate-800 space-y-4 min-w-0 overflow-hidden">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3 min-w-0">
+                <h3 className="font-bold text-white text-sm min-w-0">System Audit Activity</h3>
+                <Link to="/admin/audit-logs" className="text-xs font-bold text-teal-400 hover:underline shrink-0 whitespace-nowrap">View All →</Link>
+              </div>
+              <div className="space-y-3 min-w-0">
+                {(recent.auditLogs || []).map((log) => (
+                  <div
+                    key={log.id}
+                    className="p-3 rounded-xl bg-slate-900 border border-slate-800/80 text-xs min-w-0 max-w-full overflow-hidden w-full"
+                  >
+                    <div className="grid w-full min-w-0 max-w-full grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-1.5">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0 sm:col-start-1 sm:row-start-1">
+                        <span className="font-bold text-white break-words min-w-0">{log.userName}</span>
+                        <span className="px-1.5 py-0.5 rounded bg-slate-800 text-[9px] font-bold text-teal-400 uppercase shrink-0">
+                          {log.action}
+                        </span>
+                      </div>
+                      <time
+                        dateTime={log.createdAt}
+                        className="text-[10px] text-slate-500 tabular-nums whitespace-nowrap sm:col-start-2 sm:row-start-1 sm:justify-self-end sm:self-start sm:pl-1"
+                      >
+                        {new Date(log.createdAt).toLocaleString([], {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </time>
+                      <p
+                        className="min-w-0 max-w-full text-slate-400 text-[11px] leading-relaxed break-words [overflow-wrap:anywhere] overflow-hidden [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3] sm:col-span-2 sm:row-start-2"
+                      >
+                        {log.details || '—'}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </>
   );

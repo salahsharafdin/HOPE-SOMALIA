@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { jwtSecret, prisma } = require('../config');
+const { mergeUserProfile } = require('../utils/adminProfileStore');
 
 const REGISTERED_ADMINS = [
   { id: 'admin-salah-1', email: 'salahsharafdin@gmail.com', fullName: 'Salah Sharafdin', role: 'SUPER_ADMIN', status: 'ACTIVE' },
@@ -45,7 +46,7 @@ const authenticate = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Invalid token or user account deactivated.' });
     }
 
-    req.user = user;
+    req.user = mergeUserProfile(user);
     next();
   } catch (error) {
     return res.status(401).json({ success: false, message: 'Invalid or expired authentication token.' });

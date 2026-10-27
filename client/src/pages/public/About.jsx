@@ -3,6 +3,7 @@ import { Target, Eye, Shield, CheckCircle2 } from 'lucide-react';
 import SEO from '../../components/common/SEO';
 import ImageWithFallback from '../../components/common/ImageWithFallback';
 import { useSettings } from '../../context/SettingsContext';
+import { parseLeadershipTeamFromSettings } from '../../data/aboutLeadershipTeam';
 
 export default function About() {
   const { settings } = useSettings();
@@ -21,11 +22,7 @@ export default function About() {
 
   const valuesList = valuesRaw.split(',').map((v) => v.trim()).filter(Boolean);
 
-  const leadership = [
-    { name: 'Dr. Abdirahman Hassan', title: 'Executive Director & Founder', image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80', bio: 'Over 18 years leading international development and public health initiatives across the Horn of Africa.' },
-    { name: 'Fatima Omar', title: 'Director of Programs & Field Operations', image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80', bio: 'Specialist in emergency rapid deployment, community empowerment, and maternal health access.' },
-    { name: 'Mohamed Jama', title: 'Head of Financial Auditing & Accountability', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80', bio: 'Certified accountant overseeing institutional donor compliance, transparency audits, and budget allocations.' },
-  ];
+  const leadership = parseLeadershipTeamFromSettings(settings.about_leadership_team);
 
   return (
     <>
@@ -135,8 +132,8 @@ export default function About() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {leadership.map((person, idx) => (
-              <div key={idx} className="bg-slate-50 p-6 rounded-2xl border border-slate-200/80 space-y-4 text-center">
+            {leadership.map((person) => (
+              <div key={person.id || person.name} className="bg-slate-50 p-6 rounded-2xl border border-slate-200/80 space-y-4 text-center">
                 <ImageWithFallback
                   src={person.image}
                   alt={person.name}

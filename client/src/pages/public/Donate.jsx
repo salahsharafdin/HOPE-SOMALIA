@@ -1,23 +1,41 @@
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Heart, ShieldCheck, CheckCircle2, Lock, CreditCard, DollarSign, ArrowRight } from 'lucide-react';
 import api from '../../api/axios';
 import SEO from '../../components/common/SEO';
+import CountrySelect from '../../components/common/CountrySelect';
+import { countryNames } from '../../data/countries';
+import InternationalPhoneInput from '../../components/common/InternationalPhoneInput';
+import { validatePhoneForCountry } from '../../utils/phone';
 import { useToast } from '../../context/ToastContext';
 
-const donationSchema = z.object({
-  donorName: z.string().min(2, 'Name is required'),
-  donorEmail: z.string().email('Invalid email address'),
-  donorPhone: z.string().optional(),
-  country: z.string().default('Somalia'),
-  amount: z.number().min(1, 'Amount must be at least $1'),
-  currency: z.string().default('USD'),
-  type: z.enum(['one-time', 'monthly']),
-  purpose: z.string().default('General Fund'),
-  paymentMethod: z.enum(['Card', 'PayPal', 'Mobile Money', 'Bank Transfer']),
-});
+const donationSchema = z
+  .object({
+    donorName: z.string().min(2, 'Name is required'),
+    donorEmail: z.string().email('Invalid email address'),
+    donorPhone: z.string().optional(),
+    country: z
+      .string()
+      .min(1, 'Please select your country')
+      .refine((val) => countryNames.includes(val), { message: 'Please select a valid country' }),
+    amount: z.number().min(1, 'Amount must be at least $1'),
+    currency: z.string().default('USD'),
+    type: z.enum(['one-time', 'monthly']),
+    purpose: z.string().default('General Fund'),
+    paymentMethod: z.enum(['Card', 'PayPal', 'Mobile Money', 'Bank Transfer']),
+  })
+  .superRefine((data, ctx) => {
+    const phoneResult = validatePhoneForCountry(data.donorPhone, data.country, { required: false });
+    if (!phoneResult.ok) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['donorPhone'],
+        message: phoneResult.message,
+      });
+    }
+  });
 
 export default function Donate() {
   const [step, setStep] = useState(1); // 1: Amount & Type, 2: Info & Payment, 3: Confirmation Receipt
@@ -35,6 +53,8 @@ export default function Donate() {
     register,
     handleSubmit,
     setValue,
+    control,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(donationSchema),
@@ -63,11 +83,15 @@ export default function Donate() {
     }
   };
 
+  const selectedCountry = watch('country');
+
   const onSubmit = async (data) => {
     setSubmitting(true);
     try {
+      const phoneResult = validatePhoneForCountry(data.donorPhone, data.country, { required: false });
       const payload = {
         ...data,
+        donorPhone: phoneResult.e164 || undefined,
         amount: selectedAmount,
         type: donationType,
         paymentMethod,
@@ -237,21 +261,41 @@ export default function Donate() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-navy-900 block">Phone Number</label>
-                      <input
-                        type="text"
-                        {...register('donorPhone')}
-                        placeholder="e.g. +252 61 555 4433"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-navy-900 focus:outline-none focus:border-brand-500"
+                      <label className="text-xs font-bold text-navy-900 block" htmlFor="donate-phone">
+                        Phone Number
+                      </label>
+                      <Controller
+                        name="donorPhone"
+                        control={control}
+                        render={({ field }) => (
+                          <InternationalPhoneInput
+                            id="donate-phone"
+                            value={field.value || ''}
+                            onChange={field.onChange}
+                            linkedCountryName={selectedCountry}
+                            error={errors.donorPhone?.message}
+                            placeholder=""
+                          />
+                        )}
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-navy-900 block">Country *</label>
-                      <input
-                        type="text"
-                        {...register('country')}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-navy-900 focus:outline-none focus:border-brand-500"
+                      <label className="text-xs font-bold text-navy-900 block" htmlFor="donate-country">
+                        Country *
+                      </label>
+                      <Controller
+                        name="country"
+                        control={control}
+                        render={({ field }) => (
+                          <CountrySelect
+                            id="donate-country"
+                            value={field.value}
+                            onChange={field.onChange}
+                            error={errors.country?.message}
+                            placeholder="Select your country"
+                          />
+                        )}
                       />
                     </div>
                   </div>
